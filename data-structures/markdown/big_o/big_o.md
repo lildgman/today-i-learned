@@ -1,4 +1,7 @@
 # 빅오(Big-O) 
+[빅오표기법](https://www.youtube.com/watch?v=6Iq5iMCVsXA&list=PLjSkJdbr_gFYSUYfnF_OGXtnGs2d3vWg7&index=1)
+
+위 영상을 참고하여 기록합니다.
 
 ## 빅오란?
 * 알고리즘 성능을 수학적으로 표현하는 방법 
