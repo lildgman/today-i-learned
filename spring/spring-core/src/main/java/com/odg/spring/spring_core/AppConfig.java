@@ -11,6 +11,7 @@ import com.odg.spring.spring_core.order.OrderService;
 import com.odg.spring.spring_core.order.OrderServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class AppConfig {
@@ -30,6 +31,7 @@ public class AppConfig {
                 discountPolicy());
     }
 
+    @Primary
     @Bean
     public MemberRepository memberRepository() {
         System.out.println("call AppConfig.memberRepository");
