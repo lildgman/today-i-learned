@@ -4,4 +4,6 @@
 ## 목록
 [웹서버, 웹 애플리케이션 서버](webserver_was.md) <br>
 [서블릿](servlet.md) <br>
-[HTML, HTML API, CSR, SSR](etc.md)
+[HTML, HTML API, CSR, SSR](etc.md) <br>
+[서블릿2](servlet2.md) <br>
+[MVC패턴1](mvc_basic1.md)
