@@ -82,3 +82,18 @@ request, response를 사용하는 곳도 있고 사용하지 않는 곳도 있�
 ### 스프링 웹 MVC와 프론트 컨트롤러
 스프링 웹 MVC의 핵심도 이 프론트 컨트롤러! <br>
 스프링 웹 MVC의 DispatcherServlet이 프론트 컨트롤러 패턴으로 구현
+
+## 프론트 컨트롤러 도입 - v1
+1. 클라이언트 HTTP 요청
+2. URL 매핑 정보에서 컨트롤러 조회
+3. 컨트롤러 호출
+4. 컨트롤러에서 JSP forward
+5. HTML 응답
+
+~~~java
+public interface ControllerV1 {
+
+    void process(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException;
+}
+~~~
+각 컨트롤러는 이 인터페이스를 구현
