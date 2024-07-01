@@ -6,4 +6,5 @@
 [서블릿](servlet.md) <br>
 [HTML, HTML API, CSR, SSR](etc.md) <br>
 [서블릿2](servlet2.md) <br>
-[MVC패턴1](mvc_basic1.md)
+[MVC패턴1](mvc_basic1.md)<br>
+[스프링 MVC](spring_mvc_basic.md)
