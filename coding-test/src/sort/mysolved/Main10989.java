@@ -3,8 +3,7 @@ package sort.mysolved;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 
 public class Main10989 {
 
@@ -17,16 +16,16 @@ public class Main10989 {
 
         int n = Integer.parseInt(br.readLine());
 
-        ArrayList<Integer> list = new ArrayList<>();
+        int[] arr = new int[n];
 
         for (int i = 0; i < n; i++) {
-            list.add(Integer.parseInt(br.readLine()));
+            arr[i] = Integer.parseInt(br.readLine());
         }
 
-        Collections.sort(list);
+        Arrays.sort(arr);
 
-        for (Integer value : list) {
-            sb.append(value).append('\n');
+        for (int i : arr) {
+            sb.append(i).append('\n');
         }
 
         System.out.println(sb);

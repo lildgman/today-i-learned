@@ -11,12 +11,6 @@ J
 src/geometry/Main5073.java,3/4/346923daa33bc98b76d67b9a7e2d0fbd29c5e72f
 K
 src/geometry/Main14215.java,d/f/df16909116a43e4d833a0cdde5ea29585ac7884d
-F
-src/sort/Main2750.java,3/2/32cfede5697ae6b0fba13bd49984d6621d44a437
-S
-#src/sort/Main2750SelectionSort.java,b/a/ba25e7c638286a1d7c32e751c78d856974d69009
-F
-src/sort/Main2587.java,a/b/ab3045fbb7126cbdcf79d7a5e26fd692df9e5f17
 O
 src/sort/mysolved/Main2750.java,1/6/164fa35a49234a5f849b542b135f8eb26ee476ba
 O
@@ -33,3 +27,13 @@ R
 "src/sort/othersolved/Main2751.java,6/9/697195bb0026268d579ab60950cfe960e34298d0
 P
  src/sort/mysolved/Main10989.java,5/2/5202dd1854508c92ba517b41b767045caaba854a
+S
+#src/sort/othersolved/Main10989.java,b/b/bb4043c948b295c0574994d95e35b31769f769c0
+O
+src/sort/mysolved/Main1427.java,e/0/e0c8a7b0f4ca68e0821401c3cb32ef3fec70fd99
+R
+"src/sort/othersolved/Main1427.java,0/9/09ff12145c05b292194161e6a1e082d440b0e438
+P
+ src/sort/mysolved/Main11650.java,7/5/750e455c58ef873ef9af01fcaee2ae4a5a8f3e33
+S
+#src/sort/othersolved/Main11650.java,a/7/a769d9b53bb7a802dd4de5e3b7414df793a81405
