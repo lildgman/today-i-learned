@@ -101,4 +101,26 @@ public class CountingSort {
     }
 }
 
-~~
+~~~
+
+개수정렬은 각 배열 원소끼리 직접 비교하는 것이 아닌 인덱스를 갖고 위치를 찾아나가는 것. <br>
+수의 범위를 알고있고 입출력만 하는 것이면 counting처럼 입력 받자마자 해당 값을 array 배열의 인덱스를 사용해 값을 증가시킨 후 바로 array[0] 부터 해당 인덱스 값이 0이 될 때까지 인덱스를 출력해주면 된다.
+~~~java
+public class CountingSort {
+
+  int[] arr = new int[101]; // 수의 범위
+  
+  for(int i =0; i < 50 ; i++){ // 수열의 크기
+    arr[(int)(Math.random() * 101)]++; // 0 ~ 100
+  }
+
+  for(int i = 0; i < arr.length; i++) {
+
+    while(arr[i]-- > 0) {
+      System.out.print(i + " ");
+    }
+  }
+
+
+}
+~~~
