@@ -399,3 +399,60 @@ public class SpringMemberControllerV2 {
     }
 }
 ~~~
+
+이 코드에서 아래와 같은 중복이 있었음
+- @RequestMapping("/spring/v2/members/new-form)
+- @RequestMapping("/spring/v2/members)
+- @RequestMapping("/spring/v2/members/save)
+
+클래스 레벨에 
+- @RequestMapping("/springmvc/v2/members") 추가 시
+
+- @RequestMapping("/new-form") -> /spring/v2/members/new-form
+- @RequestMapping("/save") -> /spring/v2/members/save
+- @RequestMapping -> /spring/v2/members/new-form
+
+## 스프링 MVC - 실용적인 방식
+
+~~~java
+@Controller
+@RequestMapping("/springmvc/v3/members")
+public class SpringMemberControllerV3 {
+
+    private MemberRepository memberRepository = MemberRepository.getInstance();
+
+    @GetMapping("/new-form")
+    public String newForm() {
+        return "new-form";
+    }
+
+    @PostMapping("/save")
+    public String save(
+            @RequestParam("username") String username,
+            @RequestParam("age") int age,
+            Model model) {
+
+        Member member = new Member(username, age);
+        memberRepository.save(member);
+
+        model.addAttribute("member", member);
+        return "save-result";
+    }
+
+    @GetMapping
+    public String members(Model model) {
+        List<Member> members = memberRepository.findAll();
+        model.addAttribute("members", members);
+
+        return "members";
+    }
+}
+~~~
+Model 파라미터 제공, ViewName 직접 반환 가능
+
+@RequestParam: HTTP 요청 파라미터를 @RequestParam으로 받을 수 있음
+- request.getParameter("username")와 거의 같은 코드
+- GET, POST 모두 지원
+
+@RequestMapping -> @GetMapping, @PostMapping
+- HTTP Method로 구분 가능

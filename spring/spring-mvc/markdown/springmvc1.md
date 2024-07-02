@@ -7,4 +7,5 @@
 - [HTML, HTML API, CSR, SSR](etc.md) 
 - [서블릿2](servlet2.md) 
 - [MVC패턴1](mvc_basic1.md)
-- [스프링 MVC](spring_mvc_basic.md)
+- [스프링 MVC - 구조](spring_mvc_basic.md)
+- [스프링 MVC - 기본기능](spring_mvc_basic2.md)
