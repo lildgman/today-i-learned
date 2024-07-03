@@ -576,3 +576,200 @@ void를 반환하는 경우
 
 HTTP 메시지
 - @ResponseBody, HttpEntity를 사용하면 HTTP 메시지 바디에 직접 응답 데이터를 출력
+
+## HTTP 응답 - HTTP API, 메시지 바디에 직접 입력
+~~~java
+@Slf4j
+//@Controller
+//@ResponseBody
+@RestController
+public class ResponseBodyController {
+
+    @GetMapping("response-body-string-v1")
+    public void responseBodyV1(HttpServletResponse response) throws IOException {
+        response.getWriter().write("ok");
+    }
+
+    @GetMapping("response-body-string-v2")
+    public ResponseEntity<String> responseBodyV2() {
+
+        return new ResponseEntity<>("ok", HttpStatus.OK);
+    }
+
+    @GetMapping("response-body-string-v3")
+    public String responseBodyV3() {
+        return "ok";
+    }
+
+    @GetMapping("response-body-json-v1")
+    public ResponseEntity<HelloData> responseBodyJsonV1() {
+        HelloData helloData = new HelloData();
+
+        helloData.setUsername("userA");
+        helloData.setAge(20);
+
+        return new ResponseEntity<>(helloData, HttpStatus.OK);
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("response-body-json-v2")
+    public HelloData responseBodyJsonV2() {
+        HelloData helloData = new HelloData();
+
+        helloData.setUsername("userA");
+        helloData.setAge(20);
+
+        return helloData;
+    }
+}
+
+~~~
+
+@RestController <br>
+`@Controller` 대신 `@RestController` 애노테이션을 사용하면 컨트롤러에 모두 `@ResponseBody`가 적용된다.
+
+`@RestController` 애노테이션 안에 `@Controller`, `@ResponseBody`가 적용되있다. 
+
+## HTTP 컨버터
+@ResponseBody 원리
+- HTTP의 body에 문자내용 직접 반환
+- viewResolver 대신 HttpMessageConverter가 동작
+- 기본 문자처리: StringHttpMessageConverter
+- 기본 객체처리: MappingJackson2HttpMessageConverter
+- HttpMessageConverter에 다른 처리들도 등록되있음
+
+응답의 경우 클라이언트이 HTTP Accept 헤더와 서버의 컨트롤러 반환 타입 정보 둘을 조합해 HttpMessageConverter가 선택
+
+스프링 MVC에서는 다음 경우에 HTTP 메시지 컨버터 적용
+- HTTP 요청: @RequestBody, HttpEntity(RequestEntity)
+- HTTP 응답: @ResponseBody, HttpEntity(ResponseEntity)
+
+**HttpMessageConverter**
+~~~java
+public interface HttpMessageConverter<T> {
+    boolean canRead(Class<?> clazz, @Nullable MediaType mediaType);
+
+    boolean canWrite(Class<?> clazz, @Nullable MediaType mediaType);
+
+    List<MediaType> getSupportedMediaTypes();
+
+    default List<MediaType> getSupportedMediaTypes(Class<?> clazz) {
+        return !this.canRead(clazz, (MediaType)null) && !this.canWrite(clazz, (MediaType)null) ? Collections.emptyList() : this.getSupportedMediaTypes();
+    }
+
+    T read(Class<? extends T> clazz, HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException;
+
+    void write(T t, @Nullable MediaType contentType, HttpOutputMessage outputMessage) throws IOException, HttpMessageNotWritableException;
+}
+~~~
+
+HTTP 메시지 컨버터는 HTTP 요청, HTTP 응답 둘 다 사용된다.
+- canRead(), canWrite(): 메시지 컨버터가 해당 클래스, 미디어타입을 지원하는지 체크하는 메서드
+- read(), write(): 메시지 컨버터를 통해 메시지를 읽고 쓰는 기능
+
+스프링 부트 기본 메시지 컨버터
+~~~
+0 = ByteArrayHttpMessageConverter
+1 = StringHttpMessageConverter
+2 = MappingJackson2HttpMessageConverter
+~~~
+대상 클래스 타입과 미디어 타입을 체크해 사용여부를 결정함, 만족하지 않을 시 다음 메시지 컨버터로 우선순위가 넘어감
+
+- `ByteArrayHttpMessageConverter`
+    - `byte[]` 데이터 처리
+    - 클래스 타입: `byte[]`, 미디어타입: `*/*`
+    - 요청 예시: `@RequestBody byte[] data`
+    - 응답 예시: `@ResponseBody return byte[]`, 쓰기 미디어타입: `application/octet-stream`
+- `StringHttpMessageConverter`
+    - `String` 데이터 처리
+    - 클래스 타입: `String`, 미디어타입: `*/*`
+    - 요청 예시: `@RequestBody String data`
+    - 응답 예시: `@ResponseBody return "ok`, 쓰기 미디어타입: `text/plain`
+- `MappingJackson2HttpMessageConverter`
+    - `application/json`
+    - 클래스타입: 객체 or `HashMap`, 미디어타입: `application/json` 관련
+    - 요청 예시: `@RequestBody HelloData data`
+    - 응답 예시: `@ResponseBody return helloData`, 쓰기 미디어타입: `application/json` 관련
+
+HTTP 요청 데이터 읽기
+- HTTP 요청이 오고 컨트롤러에서 `@RequestBody`, `HttpEntity` 파라미터 사용
+- 메시지 컨버터가 메시지를 읽을 수 있는지 `canRead()` 호출
+    - 대상 클래스 타입 지원하는가?
+    - HTTP 요청의 Content-Type 미디어 타입을 지원하는가?
+- `canRead()` 조건 만족 시 `read()` 호출하여 객체 생성 후 반환
+
+HTTP 응답 데이터 생성
+- 컨트롤러에서 `@ResponseBody`, `HttpEntity` 값이 반환
+- 메시지 컨버터가 메시지를 쓸 수 있는지 `canWrite()`를 호출하여 확인
+    - 대상 클래스 타입을 지원하는가?
+    - HTTP 요청의 Accept 미디어 타입을 지원하는가?
+- `canWrite()` 조건 만족 시 `write()` 호출하여 HTTP 응답 메시지 바디에 데이터 생성
+
+예시1
+~~~
+content-type: application/json
+
+@RequestMapping
+void hi(@RequestBody String data) {}
+~~~
+-> StringHttpMessageConverter
+
+예시2
+~~~
+content-type:application/json
+
+@RequestMapping
+void hi(@RequestBody HelloData data)
+~~~
+-> MappingJackson2HttpMessageConverter
+
+## 요청 매핑 헨들러 어댑터 구조
+HTTP 메시지 컨버터는 스프링 MVC 어디쯤에서 사용될까?
+
+`@RequestMapping`을 처리하는 핸들러 어댑터인 `RequestMappingHandlerAdapter`의 동작 방식을 확인해보자
+![alt text](image-2.png)
+
+애노테이션 기반 컨트롤러는 다양한 파라미터를 사용할 수 있었다. 다양한 파라미터를 처리할 수 있었던 이유는 `ArgumentResolver`가 있었기 때문이다.
+
+`RequestMappingHandlerAdapter`가 `ArgumentResolver`를 호출해서 컨트롤러가 필요로 하는 파라미터의 값(객체)를 생성하고 모두 준비가 되면 컨트롤러를 호출하면서 값을 넘겨준다.
+
+
+**ArgumentResolver** 
+- 정확히는 `HandlerMethodArgumentResolver`인데 간단히 `ArgumentResolver`라 부른다.
+~~~java
+public interface HandlerMethodArgumentResolver {
+    boolean supportsParameter(MethodParameter parameter);
+
+    @Nullable
+    Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
+}
+~~~
+
+`supportsParameter()`를 호출해 해당 파라미터를 지원하는지 학인하고 지원한다면 `resolveArgument()`를 호출해 실제 객체를 생성한다. 이렇게 생성한 객체는 컨트롤러 호출 시 넘어간다.
+
+**ReturnValueHandler**
+- `HandlerMethodReturnValueHandler`를 줄여 `ReturnValueHandler`라 부른다.
+
+컨트롤러에서 String으로 뷰 이름을 반환해도 동작하는 이유가 `ReturnValueHandler`에 있다.
+
+~~~java
+public interface HandlerMethodReturnValueHandler {
+    boolean supportsReturnType(MethodParameter returnType);
+
+    void handleReturnValue(@Nullable Object returnValue, MethodParameter returnType, ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws Exception;
+}
+~~~
+동작은 `ArgumentResolver`와 비슷하다.
+
+### HTTP 메시지 컨버터
+![alt text](image-3.png)
+
+HTTP 메시지 컨버터를 사용하는 `@RequestBody`도 컨트롤러가 필요로 하는 파라미터의 값에 사용된다. `@ResponseBody` 또한 컨트롤러의 반환 값을 이용한다.
+
+**요청의 경우**, `@RequestBody`, `HttpEntity` 를 처리하는 `ArgumentResolver`가 있을 것이다. 이 `ArgumentResolver`들이 HTTP 메시지 컨버터를 사용해 필요한 객체를 생성한다.
+
+**응답의 경우**, `@ResponseBody`, `HttpEntity` 를 처리하는 `ReturnValueHandler`가 있을 것이다. 여기서 HTTP 메시지 컨버터를 호출해 응답 결과를 만든다.
+
+예시)
+- `@RequestBody`, `@ResponseBody`가 있으면 `RequestResponseBodyMethodProcessor` 사용
+- `HttpEntity`가 있으면 `HttpEntityMethodProcessor` 사용
