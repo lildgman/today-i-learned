@@ -1,5 +1,4 @@
-# 카운팅 정렬(계수 정렬)
-### [Stranger`s LAB Blog](https://st-lab.tistory.com/104) 
+# 카운팅 정렬(계수 정렬)(Counting Sort)
 
 - 주어진 값 범위 내에서 각 요소의 발생 빈도를 계산해 정렬하는 알고리즘
 - 정수나 범위가 제한된 데이터를 정렬할 때 효과적
@@ -124,3 +123,6 @@ public class CountingSort {
 
 }
 ~~~
+
+## 참고
+### [Stranger`s LAB Blog - 계수정렬](https://st-lab.tistory.com/104) 

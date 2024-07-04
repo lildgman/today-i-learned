@@ -1,5 +1,4 @@
-# 선택 정렬
-### [Stranger`s LAB Blog](https://st-lab.tistory.com/168) 
+# 선택 정렬(Selection Sort)
 
 주어진 리스트에서 가장 작은 or 가장 큰 원소를 찾아 맨 앞의 원소와 교환하는 작업을 반복하는 정렬
 
@@ -62,3 +61,6 @@ public class SelectionSort {
 ### 단점
 - 시간복잡도 O(n^2)
 - 안정 정렬이 아님
+
+## 참고
+### [Stranger`s LAB Blog - 선택정렬](https://st-lab.tistory.com/168) 

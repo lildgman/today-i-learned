@@ -11,9 +11,9 @@
 
 ## 알고리즘
 ### 정렬
-- [선택정렬](data-structures/markdown/sort/selectionsort.md)
-- [카운팅 정렬](data-structures/markdown/sort/countingsort.md)
-
+- [선택정렬](algorithm/markdown/sort/selectionsort.md)
+- [계수정렬](algorithm/markdown/sort/countingsort.md)
+- [삽입정렬](algorithm/markdown/sort/insertionsort.md)
 ## 자바
 - [Comparable vs Comparator](java/markdown/comparable_comparator.md)
 

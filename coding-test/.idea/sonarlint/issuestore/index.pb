@@ -53,3 +53,9 @@ J
 src/temp/CompareTest3.java,a/a/aa01f5ab557bb37ecb15cc6164c142bcc2605b47
 O
 src/sort/mysolved/Main1181.java,6/a/6a48063e2a338bc0274285a13cebdc703f320ccf
+P
+ src/sort/mysolved/Main10814.java,6/1/61aaffc49afd52bd8ca1b90fb0924baf4f95d8bb
+S
+#src/sort/othersolved/Main10814.java,8/9/89eb3526ca9ccdb74689c6404475ef5d498e672e
+S
+#src/sort/othersolved/Main18870.java,9/e/9e7cfc88f2ebb08cd3f4adb73affbf25ccee2e38
