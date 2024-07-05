@@ -469,3 +469,191 @@ checked
 3. 타임리프 프로토 타입 주석
 - HTML 파일을 브라우저에서 열어보면 웹 브라우저가 렌더링 하지 않음
 - 타임리프 렌더링 시 정상 렌더링
+
+## 블록
+~~~html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<th:block th:each="user : ${users}">
+    <div>
+        사용자 이름1 <span th:text="${user.username}"></span>
+        사용자 나이1 <span th:text="${user.age}"></span>
+    </div>
+    <div>
+        요약 <span th:text="${user.username} + ' / ' + ${user.age}"></span>
+    </div>
+</th:block>
+</body>
+</html>
+~~~
+- `th:block`: 일반적인 반복을 사용하기 어려울 때 사용
+
+## 자바스크립트 인라인
+`<script th:inline="javascript"></script>`
+~~~html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<!-- 자바스크립트 인라인 사용 전 -->
+<script>
+    var username = [[${user.username}]];
+    var age = [[${user.age}]];
+
+    //자바스크립트 내추럴 템플릿
+    var username2 = /*[[${user.username}]]*/ "test username";
+
+    //객체
+    var user = [[${user}]];
+</script>
+<!-- 자바스크립트 인라인 사용 후 -->
+<script th:inline="javascript">
+    var username = [[${user.username}]];
+    var age = [[${user.age}]];
+
+    //자바스크립트 내추럴 템플릿
+    var username2 = /*[[${user.username}]]*/ "test username";
+
+    //객체
+    var user = [[${user}]];
+</script>
+
+<!-- 자바스크립트 인라인 each -->
+<script th:inline="javascript">
+    [# th:each="user, stat : ${users}"]
+    var user[[${stat.count}]] = [[${user}]];
+    [/]
+</script>
+</body>
+</html>
+~~~
+- 인라인 사용 전에는 username에 `user1`이라는 변수 이름이 그대로 남아있음. 원했던 것은 `"user1"` 이다. `user1`이 변수명으로 사용되어서 오류가 발생한다. age는 `""`가 필요 없기 때문에 오류가 발생하지 않는다
+- 인라인 사용 후에는 문자타입일 때 `""`를 포함한다. 
+- 자바스크립트 인라인 사용시에도 네츄럴 템플릿 기능을 사용할 수 있다.
+- 객체를 JSON으로 자동 변환해준다.
+- each도 지원함
+
+## 템플릿 조각
+공통영역(좌측 카테고리, 하단 푸터)를 쉽게 구현할 수 있는 기능
+~~~html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer th:fragment="copy">
+    푸터 자리 입니다.
+</footer>
+<footer th:fragment="copyParam (param1, param2)">
+    <p>파라미터 자리 입니다.</p>
+    <p th:text="${param1}"></p>
+    <p th:text="${param2}"></p>
+</footer>
+</body>
+</html>
+~~~
+
+~~~html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>부분 포함</h1>
+    <h2>부분 포함 insert</h2>
+    <div th:insert="~{template/fragment/footer :: copy}"></div>
+
+    <h2>부분 포함 replace</h2>
+    <div th:replace="~{template/fragment/footer :: copy}"></div>
+
+    <h2>부분 포함 단순 표현식</h2>
+    <div th:replace="template/fragment/footer :: copy"></div>
+
+    <h1>파라미터 사용</h1>
+    <div th:replace="~{template/fragment/footer :: copyParam ('데이터1', '데이터2')}"></div>
+</body>
+</html>
+~~~
+- `template/fragment/footer :: copy`: `template/fragment/footer.html`에 있는 `th:fragment="copy"`라는 템플릿 조각을 가져와서 사용한다는 뜻
+    - `th:insert`: 현재 태그 내부에 추가
+    - `th:replace`: 현재 태그를 대체
+    - `template/fragment/footer :: copyParam ('데이터1', '데이터2')`: 파라미터를 전달해서 렌더링 가능
+
+## 템플릿 레이아웃
+코드 조각을 레이아웃으로 넘겨 사용해보자
+~~~html
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="common_header(title,links)">
+
+    <title th:replace="${title}">레이아웃 타이틀</title>
+
+    <!-- 공통 -->
+    <link rel="stylesheet" type="text/css" media="all" th:href="@{/css/awesomeapp.css}">
+    <link rel="shortcut icon" th:href="@{/images/favicon.ico}">
+    <script type="text/javascript" th:src="@{/sh/scripts/codebase.js}"></script>
+
+    <!-- 추가 -->
+    <th:block th:replace="${links}" />
+</head>
+~~~
+
+~~~html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="template/layout/base :: common_header(~{::title},~{::link})">
+    <title>메인 타이틀</title>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/themes/smoothness/jquery-ui.css}">
+</head>
+<body>
+메인 컨텐츠
+</body>
+</html>
+~~~
+
+- `template/layout/base :: common_header(~{::title},~{::link})`
+    - `::title`: 현재 페이지 내 title 태그를 넘김
+    - `::link`: 현제 페이지 내 link 태그를 넘김
+
+## 템플릿 레이아웃 확장
+~~~html
+<!DOCTYPE html>
+<html th:fragment="layout (title, content)" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:replace="${title}">레이아웃 타이틀</title> </head>
+<body>
+<h1>레이아웃 H1</h1>
+<div th:replace="${content}">
+    <p>레이아웃 컨텐츠</p>
+</div>
+<footer>
+    레이아웃 푸터
+</footer>
+</body>
+</html>
+~~~
+-`<html th:fragment="layout (title, content)"></html>`: 이 레이아웃 파일을 기본으로하고 필요한 내용을 전달해서 변경
+
+
+~~~html
+<!DOCTYPE html>
+<html th:replace="~{template/layoutExtend/layoutFile :: layout(~{::title}, ~{::section})}"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>메인 페이지 타이틀</title> </head>
+<body>
+<section>
+    <p>메인 페이지 컨텐츠</p>
+    <div>메인 페이지 포함 내용</div>
+</section>
+</body>
+</html>
+~~~
