@@ -1,7 +1,7 @@
 # TODAY I LEARNED
 
 ## 컴퓨터구조
-
+- [컴퓨터구조](computer-structure/computer-structure.md)
 ## 운영체제
 
 ## 데이터베이스
