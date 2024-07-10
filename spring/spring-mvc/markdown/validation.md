@@ -211,3 +211,236 @@ new FieldError("item", "itemName", item.getItemName(), false, null, null, "상�
 
 스프링의 바인딩 오류 처리
 타입 오류로 바인딩에 실패하면 스프링은 `FieldError`를 생성하고 사용자가 입력한 값을 넣어둔다. 그 후 해당 오류를 `BindingResult`에 담아 컨트롤러를 호출한다. 
+
+## 오류 코드와 메시지 처리1
+`FieldError, ObjectError` 생성자는 `codes`, `arguments`를 제공하는데 오류코드로 메시지를 찾기 위해 사용한다.
+
+오류메시지를 관리할 수 있도록 `errors.properties`를 만들어서 관리하도록 하자. 스프링 부트가 이 파일을 인식할 수 있게 `application.properties` 에 있는
+`spring.messages.basename`에 `errors`를 추가하자.
+
+~~~java
+// range.item.price=가격은 {0} ~ {1} 까지 허용합니다.
+new FieldError("item", "price", item.getPrice(), false, new String[]{"range.item.price"}, new Object[]{1000, 1000000}, null)
+~~~
+- `codes`: `range.item.price`를 사용해 메시지 코드를 지정, 배열로 여러값을 전달할 수 있는데 순서대로 매칭해서 처음 매칭되는 메시지가 사용된다.
+- `arguments`: `Object[]{1000,1000000}`를 사용해 {0}, {1}로 치환할 값을 전달한다.
+
+## 오류 코드와 메시지 처리 2
+`BindingResult`는 검증해야 할 객체 `target` 바로 다음에 온다. `BingdingResult`는 검증해야 할 객체인 `target`을 알고 있다.
+
+### rejectValue(), reject()
+- `rejectValue()`
+~~~java
+void rejectValue(@Nullable String field, String errorCode,
+ @Nullable Object[] errorArgs, @Nullable String defaultMessage);
+~~~
+~~~java
+bindingResult.rejectValue("price", "range",new Object[]{1000,1000000}, null);
+~~~
+- `field`: 오류 필드명
+- `errorCode`: 오류 코드(메시지에 등록된 코드 아님)
+- `errorArgs`: 오류 메시지에서 {0} 을 치환하기 위한 값
+- `defaultMessage`: 오류 메시지를 찾을 수 없을 때 사용하는 기본 메시지
+
+- `reject()`
+~~~java
+void reject(String errorCode, @Nullable Object[] errorArgs, @Nullable String
+ defaultMessage);
+~~~
+~~~java
+bindingResult.reject("totalPriceMin", new Object[]{10000, resultPrice}, null );
+~~~
+
+## 오류 코드와 메시지 처리 3
+오류코드를 단순하게 만들게 되면 범용성이 좋아져 여러곳에서 사용할 수 있지만 세밀하게 메시지를 작성하기 어렵다. 반대로 메시지를 세밀하게 작성했을 때는 범용성이 떨어진다. 
+
+가장 좋은방법은 범용성으로 사용하다 세밀하게 사용해야할 때에는 세밀한 내용이 적용되도록 메시지에 단계를 두는 것이다.
+
+~~~
+#Level1
+required.item.itemName: 상품 이름은 필수 입니다.
+
+#Level2
+required: 필수 값 입니다. 
+~~~
+위 처럼 `required`라는 메시지만 있을 때는 이 메시지를 선택해서 사용하고, `required.item.itemName`처럼 객체명과 필드명을 조합한 세밀한 코드가 있으면 이 메시지를 더 높은 우선순위로 둔다.
+
+## 오류 코드와 메시지 처리 4
+스프링은 `MessageCodesResolver`라는 것을 지원한다.
+
+~~~java
+public class MessageCodesResolverTest {
+
+    MessageCodesResolver codesResolver = new DefaultMessageCodesResolver();
+
+    @Test
+    void messageCodesResolverObject() {
+        String[] messageCodes = codesResolver.resolveMessageCodes("required", "item");
+        assertThat(messageCodes).containsExactly("required.item", "required");
+    }
+
+    @Test
+    void messageCodesResolverField() {
+        String[] messageCodes = codesResolver.resolveMessageCodes("required", "item", "itemName", String.class);
+        assertThat(messageCodes).containsExactly(
+                "required.item.itemName",
+                "required.itemName",
+                "required.java.lang.String",
+                "required"
+        );
+    }
+}
+~~~
+### MessageCodesResolver
+- 검증 오류 코드로 메시지 코드를 생성
+- `MessageCodesResolver`는 인터페이스, `DefaultMessageCodesResolver`는 기본 구현체
+- 주로 `ObjectError`, `FieldError`와 함께 사용
+
+DefaultMessageCodesResolver 기본 메시지 생성 규칙
+
+#### 객체 오류
+~~~
+다음 순서로 2가지 생성
+1.: code + "." + object name
+2.: code
+
+ex) 오류코드: required, object name: item
+1.: required.item
+2.: required
+~~~
+
+#### 필드오류
+~~~
+다음 순서로 4가지 메시지 코드 생성
+1.: code + "." + object name + "." + field
+2.: code + "." + field
+3.: code + "." + field type
+4.: code
+
+ex) 오류코드: type, object name: "user", filed: "age", field type: int
+
+1.: "type.user.age"
+2.: "type.age"
+3.: "type.int"
+4.: "type"
+~~~
+
+동작 방식
+- `rejectValue()`, `reject()`는 내부에서 `MessageCodesResolver`를 사용
+- `FieldError`, `ObjectError`는 오류 코드를 여러개 가질 수 있다. `MessageCodesResolver`를 통해 생성된 순서대로 오류 코드를 보관
+
+`rejectValue("itemName", "required")` <br>
+4가지 오류 코드를 자동 생성
+- `required.item.itemName`
+- `required.itemName`
+- `required.java.lang.String`
+- `required`
+
+`reject("totalPriceMin")`<br>
+2가지 오류 코드 자동으로 생성
+- `totalPriceMin.item`
+- `totalPriceMin`
+
+타임리프 화면 렌더링 시 `th:errors` 실행, 이때 오류가 있으면 생성된 오류 메시지 코드를 순서대로 돌아가면서 찾고 없으면 디폴트 메시지를 출력한다.
+
+## 오류 코드와 메시지 처리 5
+
+### 오류 코드 관리 전략
+구체적인 것에서 덜 구체적인 것으로
+
+`MessageCodesResolver`는 `required.item.itemName`처럼 구체적인 것을 먼저 만들어주고 `required`처럼 덜 구체적인 것을 나중에 만든다.
+
+1. `rejectValue()` 호출
+2. `MessageCodesResolver`를 사용해 검증 오류 코드로 메시지 코드 생성
+3. `new FieldError()` 생성하면서 메시지 코드 보관
+4. `th:errors`에서 메시지 코드들로 메시지를 순서대로 찾고 보여줌
+
+## 오류 코드와 메시지 처리 6
+### 스프링이 직접 만든 오류 메시지 처리
+검증 오류 코드는 2가지로 나눌 수 있다.
+- 개발자가 직접 설정
+- 스프링이 직접 검증 오류에 추가(주로 타입 불일치)
+
+타입 검증오류 발생 시 `BindingResult`안에`FieldError()`가 담겨있고 메시지 코드들이 생성된다.
+
+- `typeMismatch.item.price` 
+- `typeMismatch.price` 
+- `typeMismatch.java.lang.Integer` 
+- `typeMismatch`
+
+## Validator 분리 1
+~~~java
+@Component
+public class ItemValidator implements Validator {
+
+    @Override
+    public boolean supports(Class<?> aClass) {
+        return Item.class.isAssignableFrom(aClass);
+    }
+
+    @Override
+    public void validate(Object o, Errors errors) {
+
+        Item item = (Item) o;
+
+        // 검증 로직
+        if (!StringUtils.hasText(item.getItemName())) {
+            errors.rejectValue("itemName", "required");
+        }
+
+        if (item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000) {
+            errors.rejectValue("price", "range",new Object[]{1000,1000000}, null);
+        }
+
+        if (item.getQuantity() == null || item.getQuantity() >= 9999) {
+            errors.rejectValue("quantity","max", new Object[]{9999}, null);
+        }
+
+        // 특정 필드가 아닌 복합 룰 검증
+        if (item.getPrice() != null && item.getQuantity() != null) {
+            int resultPrice = item.getPrice() * item.getQuantity();
+            if (resultPrice < 10000) {
+                errors.reject("totalPriceMin", new Object[]{10000, resultPrice}, null );
+            }
+        }
+
+    }
+}
+~~~
+- `supports()`: 해당 검증기를 지원하는 여부 확인
+- `validate(Object target, Errors errors)`: 검증 대상 객체와 BindingResult
+
+## Validator 분리 2
+스프링에서 Validator를 제공하는 이유는 체계적으로 검증 기능을 도입하기 위함이다. 위와 같이 검증기를 직접 불러 사용해도되지만 스프링의 도움을 받아 사용할 수도 있다
+
+~~~java
+@InitBinder
+public void init(WebDataBinder dataBinder) {
+    dataBinder.addValidators(itemValidator);
+}
+~~~
+`WebDataBinder`에 검증기를 추가하면 해당 컨트롤러에서는 검증기를 자동으로 적용할 수 있다. `@InitBinder`는 해당 컨트롤러에만 영향을 준다.
+
+~~~java
+@PostMapping("/add")
+    public String addItemV6(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+
+        // 검증에 실패 시 다시 입력 폼으로 이동
+        if (bindingResult.hasErrors()) {
+            log.info("bindingResult={}", bindingResult);
+            return "validation/v2/addForm";
+        }
+
+        // 성공 로직
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+~~~
+
+`@ModelAttribute`(검증 대상) 앞에 `@Validate` 추가
+
+`@Validate`는 검증기를 실행하라는 애노테이션이다. 이 애노테이션이 붙으면 `WebDataBinder`에 등록한 검증기를 찾아서 실행한다. 이때 여러 검증기가 등록되어있다면 어떤 검증기를 실행해야할지에 대한 기준이 필요하다. 이때 사용하는게 `supports()` 이다. 
+
+`supports()`가 호출되고 결과가 true일 때 `validate()`가 호출된다.

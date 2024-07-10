@@ -8,6 +8,8 @@
 
 ## 자료구조
 - [빅오표기법](data-structures/markdown/big_o/big_o.md)
+- [스택](data-structures/markdown/stack/stack.md) 
+- [큐](data-structures/markdown/queue/queue.md)
 
 ## 알고리즘
 ### 정렬
