@@ -4,6 +4,9 @@
 - [컴퓨터구조](computer-structure/computer-structure.md)
 ## 운영체제
 
+## HTTP
+- [HTTP 웹 기본 지식](http/http-basic.md)
+
 ## 데이터베이스
 
 ## 자료구조
