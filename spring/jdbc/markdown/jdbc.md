@@ -45,3 +45,237 @@ JDBC의 등장으로 아래와 같은 문제가 해결됐다.
 SQL Mapper는 SQL만 직접 작성하면 번거로운 일은 SQL Mapper가 대신해준다. SQL만 작성할 줄 알면 금방 사용할 수 있다.
 
 ORM기술은 SQL 자체를 작성하지 않아도 돼서 개발 생산성이 높아진다. 편리하지만 쉬운 기술이 아니라 깊이있게 학습해야한다. 
+
+## 데이터베이스 연결
+**데이터베이스에 접속하기위한 정보들**
+~~~java
+public abstract class ConnectionConst {
+
+    public static final String URL = "jdbc:h2:tcp://localhost/~/test";
+    public static final String USERNAME = "sa";
+    public static final String PASSWORD = "";
+}
+~~~
+
+~~~java
+@Slf4j
+public class DBConnectionUtil {
+
+  public static Connection getConnection() {
+      try {
+          Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+          log.info("get connection={}, class={}", connection, connection.getClass());
+
+          return connection;
+      } catch (SQLException e) {
+          throw new IllegalStateException(e);
+      }
+  }
+
+}
+~~~
+데이터베이스에 연결하기 위해 JDBC가 제공하는 `DriverManager.getConnection()`을 사용한다. 라이브러리에 있는 데이터베이스 드라이버를 찾아 해당 드라이버가 제공하는 커넥션을 반환해준다.
+
+`DriverManager`는 라이브러리에 등록된 DB드라이버를 관리하고 커넥션을 획득하는 기능을 제공한다.
+1. `DriverManager.getConnection()` 호출
+2. `DriverManager`가 라이브러리에 등록된 드라이버 목록을 인식, 드라이버들에게 순서대로 정보를 넘겨 커넥션을 획득할 수 있는지 확인
+  - URL
+  - 이름, 비밀번호 등...
+  - 드라이버는 URL 정보를 체크해 처리할 수 있는 요청인지 확인
+  - URL이 `jdbc:h2`로 시작 시 h2 데이터베이스에 접근하기 위한 규칙이다. H2 드라이버가 이를 처리할 수 있으므로 실제 데이터베이스에 연결해 커넥션을 획득하고 클라이언트에 반환한다.
+  - `jdbc:h2`로 시작하긴하지만 MySQL 드라이버가 먼저 실행도면 본인이 처리할 수 없다는 결과를 반환하고 다음 드라이버에게 순서가 넘어가게된다.
+3. 이런식으로 찾은 커넥션 구현첵 클라이언트에 반환된다.
+
+## JDBC 개발 - 등록
+~~~java
+@Data
+public class Member {
+
+    private String memberId;
+    private int money;
+
+    public Member() {
+    }
+
+    public Member(String memberId, int money) {
+        this.memberId = memberId;
+        this.money = money;
+    }
+}
+~~~
+
+~~~java
+@Slf4j
+public class MemberRepositoryV0 {
+
+  public Member save(Member member) throws SQLException {
+      String sql = "insert into member(member_id, money) values (?,?)";
+
+      Connection conn = null;
+      PreparedStatement pstmt = null;
+
+      try {
+          conn = getConnection();
+          pstmt = conn.prepareStatement(sql);
+          pstmt.setString(1, member.getMemberId());
+          pstmt.setInt(2, member.getMoney());
+          pstmt.executeUpdate();
+
+          return member;
+      } catch (SQLException e) {
+
+          log.error("db error, ", e);
+          throw e;
+      } finally {
+          close(conn, pstmt, null);
+
+      }
+  }
+
+  private void close(Connection conn, Statement stmt, ResultSet rs) {
+
+      if (rs != null) {
+          try {
+              rs.close();
+          } catch (SQLException e) {
+              log.info("error", e);
+          }
+      }
+
+      if (stmt != null) {
+
+          try {
+              stmt.close();
+          } catch (SQLException e) {
+              log.info("error", e);
+          }
+
+      }
+
+      if (conn != null) {
+          try {
+              conn.close();
+          } catch (SQLException e) {
+              log.info("error", e);
+          }
+
+      }
+
+  }
+
+  private static Connection getConnection() {
+      return DBConnectionUtil.getConnection();
+  }
+}
+~~~
+- `getConnection()`: DBConnectionUtil을 통해 데이터베이스 커넥션 획득
+- `con.preparedStatement(sql)`: 데이터베이스에 전달할 sql과 파라미터로 전달할 데이터들을 준비
+  - `pstmt.setString(1, member.getMemberId())`: sql 첫번째 ? 에 값 지정
+  - `pstmt.setInt(2, member.getMoney())`: sql 두번째 ? 에 값 지정
+- `pstmt.executeUpdate()`: `Statement`를 통해 SQL을 커넥션을 이용해 데이터베이스에 전달, 이때 int로 결과가 반환되는데 DB row 수를 반환한다.
+
+쿼리 실행 후 리소스를 정리해야한다. 리소스 정리 시 항상 역순으로 해야한다.
+
+리소스 정리는 반드시 해줘야한다. 이 부분을 놓치게 되면 커넥션이 끊어지지 않고 유지되는 문제가 발생할 수 있다. 이것을 리소스 누수라고하며 커넥션 부족으로 장애를 일으킬 수 있다.
+
+`PreparedStatement`는 `Statement`의 자식 타입, ? 를 통한 파라미터 바인딩을 가능하게 해준다. SQL Injection을 예방할 수 있다.
+
+## JDBC 개발 - 조회
+~~~java
+public Member findById(String memberId) throws SQLException {
+    String sql = "select * from member where member_id = ?";
+
+    Connection conn = null;
+    PreparedStatement pstmt = null;
+    ResultSet rs = null;
+
+    try {
+        conn = DBConnectionUtil.getConnection();
+        pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, memberId);
+
+        rs = pstmt.executeQuery();
+
+        if (rs.next()) {
+            Member member = new Member();
+            member.setMemberId(rs.getString("member_id"));
+            member.setMoney(rs.getInt("money"));
+            return member;
+        } else {
+            throw new NoSuchElementException("member not found. memberId = " + memberId);
+        }
+    }catch (SQLException e) {
+        log.error("db error", e);
+        throw e;
+    } finally {
+        close(conn, pstmt, rs);
+    }
+}
+~~~
+- `rs = pstmt.excuteQuery()`: 데이터를 변경할 때는 `executeUpdate()`를 사용하지만 조회할 때는 `executeQuery()`를 사용한다. 결과를 `ResultSet`에 담아 반환한다.
+
+**ResultSet**
+- `ResultSet`에는 select 쿼리의 결과가 순서대로 들어간다.
+- `ResultSet` 내부에 있는 커서를 이동해 다음 데이터를 조회할 수 있다.
+- `rs.next()`: 커서가 다음으로 이동, 최초 커서는 데이터를 가리키고 있지 않기 대문에 한번은 호출해야 데이터를 조회할 수 있다.
+  - `rs.next()`의 결과가 true이면 이동 결과 데이터가 있다는 의미
+- `rs.getString("member_id")`: 현재 커서가 가리키고 있는 위치의 `member_id` 데이터를 String 타입으로 반환
+- `rs.getInt("money")`: 현재 커서가 가리키고 있는 위치의 money 데이터를 int로 반환
+
+## JDBC 개발 - 수정, 삭제
+
+**수정**
+~~~java
+public void update(String memberId, int money) throws SQLException {
+  String sql = "update member set money = ? where member_id=?";
+
+  Connection conn = null;
+  PreparedStatement pstmt = null;
+
+  try {
+
+      conn = DBConnectionUtil.getConnection();
+      pstmt = conn.prepareStatement(sql);
+
+      pstmt.setInt(1, money);
+      pstmt.setString(2, memberId);
+      int resultSize = pstmt.executeUpdate();
+      log.info("resultSize = {}", resultSize);
+  } catch (SQLException e) {
+
+      log.error("db error, ", e);
+      throw e;
+  } finally {
+      close(conn, pstmt, null);
+
+  }
+}
+~~~
+
+**삭제**
+~~~java
+public void delete(String memberId) throws SQLException {
+  String sql = "delete from member where member_id = ?";
+
+  Connection conn = null;
+  PreparedStatement pstmt = null;
+
+  try {
+
+      conn = DBConnectionUtil.getConnection();
+      pstmt = conn.prepareStatement(sql);
+
+      pstmt.setString(1, memberId);
+      pstmt.executeUpdate();
+  } catch (SQLException e) {
+
+      log.error("db error, ", e);
+      throw e;
+  } finally {
+      close(conn, pstmt, null);
+
+  }
+}
+~~~
+
+
