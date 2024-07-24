@@ -279,3 +279,35 @@ public void delete(String memberId) throws SQLException {
 ~~~
 
 
+## DataSource 적용
+~~~java
+private final DataSource dataSource;
+
+public MemberRepositoryV1(DataSource dataSource) {
+    this.dataSource = dataSource;
+}
+
+...
+
+private void close(Connection conn, Statement stmt, ResultSet rs) {
+
+        JdbcUtils.closeResultSet(rs);
+        JdbcUtils.closeStatement(stmt);
+        JdbcUtils.closeConnection(conn);
+
+    }
+
+    private Connection getConnection() throws SQLException{
+        Connection conn = dataSource.getConnection();
+        log.info("get connection = {}, class = {}", conn, conn.getClass());
+        return conn;
+    }
+~~~
+- DataSource 의존관계 주입
+    - 외부에서 DataSource를 주입받아 사용, 직접 DBConnectionUtil 사용하지 않아도 됨
+    - `DataSource`는 표준 인터페이스이기 때문에 `DriverManagerDataSource`에서 `HikariDataSource`로 변경되어도 코드를 변경해주지 않아도 된다.
+- JdbcUtils 편의 메서드
+    - `JdbUtils`를 사용하면 커넥션을 편리하게 닫을 수 있다.
+
+`DriverManagerDataSource` 사용 시 `conn0~5`처럼 항상 새로운 커넥션이 생성되어서 사용된다.<br>
+커넥션 풀 사용 시 커넥션이 재사용된다. 사용이 끝난 커넥션을 다시 돌려주는 것을 반복하게 된다. 웹 애플리케이션에 동시에 여러 요청이 들어오게 되면 여러 쓰레드에서 커넥션 풀의 커넥션을 가져가는 상황이 나오게 될 것이다
