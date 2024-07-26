@@ -477,3 +477,176 @@ txTemplate.executeWithoutResult((status) -> {
 - 비즈니스 로직이 정상 수행되면 커밋, 언체크 예외 발생 시 롤백한다. 그 외의 경우에는 커밋
 
 트랜잭션 템플릿을 사용하여 트랜잭션 사용 시 생기는 반복적인 코드를 줄일 수 있었다. 하지만 서비스 로직인데 비즈니스 로직 뿐만 아니라 트랜잭션을 처리하는 기술 로직이 함께 포함되어있다. 서비스 입장에서는 비즈니스 로직이 핵심 기능이고 트랜잭션이 부가 기능이다. 이렇게 비즈니스 로직과 트랜잭션을 처리하는 로직이 한 곳에 있으면 한 클래스에서 두가지 관심사를 한번에 처리하게 된다. 즉, 유지보수가 어려워진다.
+
+## 트랜잭션 문제 해결 - 트랜잭션 AOP
+![alt text](image-15.png)
+프록시를 도입하기 전에는 서비스 로직에서 트랜잭션을 직접 시작하였다.
+
+![alt text](image-16.png)
+프록시를 사용하게 되면 트랜잭션을 처리하는 객체와 비즈니스 로직을 처리하는 서비스 객체를 분리할 수 있다.
+
+- 프록시 도입 전에는 서비스에 비즈니스 로직과 트랜잭션 처리 로직이 함께 섞여있다.
+- 프록시 도입 후에는 트랜잭션 프록시가 트랜잭션 처리 로직을 가져가게된다. 그리고 트랜잭션 시작 후 실제 서비스를 대신 호출한다.
+- `@Transactional` 애노테이션만 붙여주면 스프링 트랜잭션 AOP는 이 애노테이션을 인식하여 트랜잭션 프록시를 적용해준다.
+
+## 트랜잭션 문제 해결 - 트랜잭션 AOP 적용
+~~~java
+@Slf4j
+public class MemberServiceV3_3 {
+
+    private final MemberRepositoryV3 memberRepository;
+
+    public MemberServiceV3_3(MemberRepositoryV3 memberRepository) {
+        this.memberRepository = memberRepository;
+    }
+
+    @Transactional
+    public void accountTransfer(String fromId, String toId, int money) throws SQLException {
+        bizLogic(fromId, toId, money);
+
+    }
+
+    private void bizLogic(String fromId, String toId, int money) throws SQLException {
+        Member fromMember = memberRepository.findById(fromId);
+        Member toMember = memberRepository.findById(toId);
+
+        memberRepository.update(fromId, fromMember.getMoney() - money);
+        validation(toMember);
+        memberRepository.update(toId, toMember.getMoney() + money);
+    }
+
+    private void validation(Member toMember) {
+        if (toMember.getMemberId().equals("ex")) {
+            throw new IllegalStateException("이체 중 예외 발생");
+        }
+    }
+
+}
+~~~
+- `@Transactional` 애노테이션 추가
+- 메서드에 붙여도 되고 클래스에 붙여도 되는데 클래스에 붙일 경우 외부에서 호출 가능한 public 메서드가 AOP 적용 대상이 된다.
+
+~~~java
+
+@Slf4j
+@SpringBootTest
+class MemberServiceV3_3Test {
+
+    public static final String MEMBER_A = "memberA";
+    public static final String MEMBER_B = "memberB";
+    public static final String MEMBER_EX = "ex";
+
+    @Autowired
+    private MemberRepositoryV3 memberRepository;
+    @Autowired
+    private MemberServiceV3_3 memberService;
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        DataSource dataSource() {
+            return new DriverManagerDataSource(URL, USERNAME, PASSWORD);
+        }
+
+        @Bean
+        PlatformTransactionManager transactionManager() {
+            return new DataSourceTransactionManager(dataSource());
+        }
+
+        @Bean
+        MemberRepositoryV3 memberRepositoryV3() {
+            return new MemberRepositoryV3(dataSource());
+        }
+
+        @Bean
+        MemberServiceV3_3 memberServiceV3_3() {
+            return new MemberServiceV3_3(memberRepositoryV3());
+        }
+    }
+
+    @AfterEach
+    void after() throws SQLException {
+        memberRepository.delete(MEMBER_A);
+        memberRepository.delete(MEMBER_B);
+        memberRepository.delete(MEMBER_EX);
+    }
+
+    @Test
+    void AopCheck() {
+        log.info("memberService class={}", memberService.getClass());
+        log.info("memberRepository class={}", memberRepository.getClass());
+        Assertions.assertThat(AopUtils.isAopProxy(memberService)).isTrue();
+        Assertions.assertThat(AopUtils.isAopProxy(memberRepository)).isFalse();
+    }
+
+
+    @Test
+    @DisplayName("정상 이체")
+    void accountTransfer() throws SQLException {
+        // given
+        Member memberA = new Member(MEMBER_A, 10000);
+        Member memberB = new Member(MEMBER_B, 10000);
+
+        memberRepository.save(memberA);
+        memberRepository.save(memberB);
+
+        // when
+        memberService.accountTransfer(memberA.getMemberId(), memberB.getMemberId(), 2000);
+
+        // then
+        Member findMemberA = memberRepository.findById(memberA.getMemberId());
+        Member findMemberB = memberRepository.findById(memberB.getMemberId());
+        assertThat(findMemberA.getMoney()).isEqualTo(8000);
+        assertThat(findMemberB.getMoney()).isEqualTo(12000);
+    }
+
+    @Test
+    @DisplayName("이체 중 예외 발생")
+    void accountTransferEx() throws SQLException {
+        // given
+        Member memberA = new Member(MEMBER_A, 10000);
+        Member memberEx = new Member(MEMBER_EX, 10000);
+
+        memberRepository.save(memberA);
+        memberRepository.save(memberEx);
+
+        // when
+        assertThatThrownBy(() ->
+                memberService.accountTransfer(memberA.getMemberId(), memberEx.getMemberId(), 2000))
+                .isInstanceOf(IllegalStateException.class);
+
+        // then
+        Member findMemberA = memberRepository.findById(memberA.getMemberId());
+        Member findMemberEX = memberRepository.findById(memberEx.getMemberId());
+
+        assertThat(findMemberA.getMoney()).isEqualTo(10000);
+        assertThat(findMemberEX.getMoney()).isEqualTo(10000);
+    }
+}
+~~~
+- 테스트에서 스프링 AOP를 적용하려면 스프링 컨테이너가 필요하다
+- `@SpringBootTest` 애노테이션이 있으면 테스트 시 스프링 부트를 통해 스프링 컨테이너를 생성한다.
+- `@TestConfiguration`: 테스트 안에서 내부 설정 클래스를 만들어 사용하면서 스프링 부트가 자동으로 만들어주는 빈들에 추가로 필요한 스프링 빈들을 등록하고 테스트를 수행할 수 있다.
+
+`AopCheck()`의 결과를 보면 `memberService`에 CGLIB... 라는 것들이 붙어있다. 프록시가 적용된 것이다. memberRepository에는 AOP가 적용되지 않았기 때문에 프록시가 적용되지 않는다.
+
+## 트랜잭션 AOP 정리
+![alt text](image-17.png)
+- 선언적 트랜잭션 관리: `@Transactional` 애노테이션을 붙여 트랜잭션을 적용하는 것
+- 프로그래밍 방식의 트랜잭션 관리: 코드를 직접 작성하는 것
+
+## 스프링 부트의 자동 리소스 등록
+스프링 부트 등장 이전에는 데이터소스와 트랜잭션 매니저를 개발자가 직접 스프링 빈으로 등록하여 사용했다.
+- 스프링부트는 데이터소스(dataSource)를 스프링 빈에 자동으로 등록한다.
+- 자동으로 등록되는 스프링 빈 이름: dataSource
+- 개발자가 직접 데이버소스를 빈으로 등록할 시 스프링부트는 데이터소스를 자동으로 등록하지 않는다.
+
+이때 `application.properties`에 있는 속성을 사용해 DataSource를 생성하고 스프링 빈에 등록한다.
+- 스프링부트가 기본으로 생성하는 데이터소스는 커넥션풀을 제공하는 `HikariDataSource`이다.
+- 커넥션 풀과 관련된 설정도 `application.properties`에서 설정 가능
+
+트랜잭션 매니저도 자동으로 스프링 빈에 등록한다
+- 자동으로 등록되는 스프링 빈 이름: `transactionManager`
+- 개발자가 직접 트랜잭션 매니저를 빈으로 등록하면 스프링 부트는 트랜잭션 매니저를 자동으로 등록하지 않는다.
+
+어떤 트랜잭션 매니저를 선택할지는 등록된 라이브러리를 보고 판단한다. JDBC를 사용할 경우 `DataSourceTransactionManager`, JPA 사용 시 `JpaTransactionManager`를 등록, 둘 다 사용할 경우 `JpaTransactionManager` 등록, 

@@ -21,6 +21,7 @@
 - [삽입정렬](algorithm/markdown/sort/insertionsort.md)
 ## 자바
 - [변수](java/markdown/variable.md)
+- [예외](java/markdown/exception.md)
 - [Comparable vs Comparator](java/markdown/comparable_comparator.md)
 
 ## Spring
