@@ -6,3 +6,4 @@
 - [커넥션풀과 데이터소스 이해](connectionpoll.md)
 - [트랜잭션](transaction.md)
 - [스프링과 문제해결 - 트랜잭션](spring_transaction.md) 
+- [스프링과 문제해결 - 예외처리](spring_exception.md) 
