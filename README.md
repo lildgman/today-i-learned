@@ -8,7 +8,7 @@
 - [HTTP 웹 기본 지식](http/http-basic.md)
 
 ## 데이터베이스
-
+- [혼자 공부하는 SQL](database/markdown/hongong/hongong.md)
 ## 자료구조
 - [빅오표기법](data-structures/markdown/big_o/big_o.md)
 - [스택](data-structures/markdown/stack/stack.md) 
