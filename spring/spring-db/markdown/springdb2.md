@@ -4,3 +4,5 @@
 ## 목차
 - [데이터 접근 기술 - 시작](dat_start.md)
 - [데이터 접근 기슬 - 스프링 JdbcTemplate](jdbctemplate.md)
+- [데이터 접근 기술 - 테스트](db_test.md)
+- [데이터 접근 기술 - MyBatis](mybatis.md)
