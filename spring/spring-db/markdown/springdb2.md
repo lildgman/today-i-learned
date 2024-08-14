@@ -7,3 +7,4 @@
 - [데이터 접근 기술 - 테스트](db_test.md)
 - [데이터 접근 기술 - MyBatis](mybatis.md)
 - [데이터 접근 기술 - JPA](jpa.md)
+- [데이터 접근 기술 - 스프링 데이터 JPA](springdatajpa.md)
