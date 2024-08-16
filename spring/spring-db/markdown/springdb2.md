@@ -9,3 +9,5 @@
 - [데이터 접근 기술 - JPA](jpa.md)
 - [데이터 접근 기술 - 스프링 데이터 JPA](springdatajpa.md)
 - [데이터 접근 기술 - Querydsl](querydsl.md)
+- [데이터 접근 기술 - 활용 방안](tip.md) 
+- [스프링 트랜잭션의 이해](spring_transaction.md)
