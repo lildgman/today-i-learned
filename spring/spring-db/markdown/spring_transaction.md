@@ -525,3 +525,160 @@ TransactionInterceptor           : Completing transaction for [com.odg.springtx.
 클래스 레벨에 트랜잭션을 적용하게 되면 모든 메서드에 트랜잭션이 걸릴 수 있다. 그러면 트랜잭션을 의도하지 않는 곳까지 트랜잭션이 과도하게 적용이 된다. 트랜잭션은 주로 비즈니스 로직 시작점에 걸기 때문에 대부분 외부에 열어준 곳을 시작점으로 사용한다. 이러한 이유로 public 메서드에만 트랜잭션을 적용하도록 설정되어 있다.
 
 public이 아닌 곳에 `@Transactional`이 붙어 있으면 예외가 발생하지 않고 트랜잭션 적용만 무시된다.
+
+## 트랜잭션 AOP 주의사항 - 초기화 시점
+스프링 초기화 시점에는 트랜잭션 AOP가 적용되지 않을 수 있다.
+~~~java
+@SpringBootTest
+public class InitTxTest {
+
+    @Autowired
+    private Hello hello;
+
+    @Test
+    void go() {
+        // 초기화 코드는 스프링이 초기화 시점에 호출한다.
+    }
+
+    @TestConfiguration
+    static class InitTxTestConfig {
+
+        @Bean
+        Hello hello() {
+            return new Hello();
+        }
+    }
+
+
+    @Slf4j
+    static class Hello {
+
+        @PostConstruct
+        @Transactional
+        public void initV1() {
+            boolean isActive = TransactionSynchronizationManager.isActualTransactionActive();
+            log.info("Hello init @PostConstruct tx active={}", isActive);
+        }
+
+        @EventListener(ApplicationReadyEvent.class)
+        @Transactional
+        public void initV2() {
+            boolean isActive = TransactionSynchronizationManager.isActualTransactionActive();
+            log.info("Hello init ApplicationReadyEvent tx active={}", isActive);
+        }
+
+    }
+}
+~~~
+초기화 코드(ex. @PostConstruct)와 @Transactional을 함께 사용하면 트랜잭션이 적용되지 않는다. <br>
+초기화 코드가 먼저 호출되고 그 다음에 트랜잭션 AOP가 적용되기 때문이다.
+
+~~~
+InitTxTest$Hello    : Hello init @PostConstruct tx active=false
+~~~
+
+이 문제를 해결하기 위해서는 `ApplicationReadyEvent` 이벤트를 사용하는 것이다
+~~~java
+@EventListener(ApplicationReadyEvent.class)
+@Transactional
+public void initV2() {
+    boolean isActive = TransactionSynchronizationManager.isActualTransactionActive();
+    log.info("Hello init ApplicationReadyEvent tx active={}", isActive);
+}
+~~~
+이 이벤트는 트랜잭션 AOP를 포함한 스프링이 컨테이너가 완전히 생성되고 난 다음에 이벤트가 붙은 메서드를 호출해준다.
+
+~~~
+TransactionInterceptor           : Getting transaction for [com.odg.springtx.apply.InitTxTest$Hello.initV2]
+InitTxTest$Hello    : Hello init ApplicationReadyEvent tx active=true
+TransactionInterceptor           : Completing transaction for [com.odg.springtx.apply.InitTxTest$Hello.initV2]
+~~~
+initV2()에 트랜잭션이 적용된 것을 확인할 수 있다.
+
+## 트랜잭션 옵션 소개
+~~~java
+public @interface Transactional {
+    @AliasFor("transactionManager")
+    String value() default "";
+
+    @AliasFor("value")
+    String transactionManager() default "";
+
+    String[] label() default {};
+
+    Propagation propagation() default Propagation.REQUIRED;
+
+    Isolation isolation() default Isolation.DEFAULT;
+
+    int timeout() default -1;
+
+    String timeoutString() default "";
+
+    boolean readOnly() default false;
+
+    Class<? extends Throwable>[] rollbackFor() default {};
+
+    String[] rollbackForClassName() default {};
+
+    Class<? extends Throwable>[] noRollbackFor() default {};
+
+    String[] noRollbackForClassName() default {};
+}
+~~~
+
+### value, transactionManager
+트랜잭션을 사용하기 위해서는 스프링 빈에 등록된 어떤 트랜잭션 매니저를 사용할지 알아야 한다. 사용할 트랜잭션을 지정할 때는 `value`, `transactionManager` 둥 중 하나에 트랜잭션 매니저의 스프링 빈의 이름을 적어주면 된다. <br>
+이 값을 생략하면 기본으로 등록된 트랜잭션 매니저를 사용하기 때문에 대부분 생략한다.
+사용하는 트랜잭션 매니저가 둘 이상일 경우 트랜잭션 매니저의 이름을 지정해서 구분하면 된다.
+
+~~~java
+@Transactional("memberTxManager")
+public void member() {}
+
+@Transactional("orderTxManager")
+public void order() {}
+~~~
+
+### rollbackFor
+예외 발생 시 스프링 트랜잭션의 기본정책은 아래와 같다
+- 언체크 예외인 `RuntimeException`, `Error`와 그 하위 예외가 발생하면 롤백한다.
+- 체크 예외인 `Exception`과 그 하위 예외들은 커밋한다.
+
+rollbackFor 옵션을 사용하면 기본 정책에 추가로 어떤 예외가 발생할 때 롤백을 할 지 지정할 수 있다. <br>
+`@Transactional(rollbackFor = Exception.class)` <br>
+위 처럼 지정할 경우 체크예외인 Exception이 발생해도 롤백하게 된다.
+
+### noRollBackFor
+rollbackFor와 반대이다. 기본정책에 추가로 어떤 예외가 발생했을 때 롤백하면 안되는지 지정이 가능하다
+
+### propagation
+트랜잭션 전파에 대한 옵션이다. 추후에 자세히 알아보자
+
+### isolation
+트랜잭션 격리 수준을 지정할 수 있다. 기본 값은 데이터베이스에서 설정한 트랜잭션 격리 수준을 사용하는 DEFAULT이다. 대부분 데이터베이스에서 설정한 기준을 따른다.
+- DEFAULT: 데이터베이스에서 설정한 격리 수준을 따른다.
+- READ_UNCOMMITTED: 커밋되지 않은 읽기
+- READ_COMMITTED: 커밋된 읽기
+- REPEATABLE_READ: 반복 가능한 읽기
+- SERIALIZABLE: 직렬화 가능
+
+### timeout
+트랜잭션 수행 시간에 대한 타임아웃을 초 단위로 지정한다. 기본 값은 트랜잭션 시스템의 타임아웃을 사용한다.
+
+### label
+트랜잭션 애노테이션에 있는 값을 직접 읽어 어떤 동작을 하고 싶을 때 사용할 수 있다. 잘 사용하지 않는다고 한다.
+
+### readOnly
+트랜잭션은 기본적으로 읽기 쓰기가 모두 가능한 트랜잭션이 생성된다. <br>
+`readOnly=true` 옵션을 사용하면 읽기 전용 트랜잭션이 생성된다. 이 경우 등록, 수정, 삭제가 안되고 읽기 기능만 작동한다. 그리고 readOnly 옵션을 사용하면 읽기에서 다양한 성능 최적화가 발생할 수 있다.
+
+readOnly는 크게 3곳에서 적용된다
+- 프레임워크
+    - JdbcTemplate은 읽기 전용 트랜잭션 안에서 변경 기능을 실행하면 예외를 던진다.
+    - JPA(하이버네이트)는 읽기 전용 트랜잭션의 경우 커밋 시점에 플러시를 호출하지 않는다. 읽기 전용이기 때문에 변경에 사용되는 플러시를 호출할 필요가 없기 때문이다. 또한 변경 감지를 위한 스냅샷 객체도 생성하지 않는다.
+- JDBC 드라이버
+    - 이 내용은 DB와 드라이버 버전에 따라 다르게 동작하니 확인이 필요하다.
+    - 읽기 전용 트랜잭션에서 변경 쿼리가 발생하면 예외를 던진다.
+    - 읽기, 쓰기 데이터베이스를 구분해 요청한다. 읽기 전용 트랜잭션의 경우 읽기 데이터베이스의 커넥션을 획득해 사용한다
+- 데이터베이스
+    - 데이터베이스에 따라 읽기 전용 트랜잭션의 경우 읽기만 하면 되므로 내부에서 성능 최적화가 발생한다.
