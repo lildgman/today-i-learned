@@ -5,3 +5,4 @@
 - [그리디](greedy/greedy.md)
 - [구현](implementation/implementation.md)
 - [DFS/BFS](dfs-bfs/dfs_bfs.md)
+- [정렬 알고리즘](sort/sort.md)
