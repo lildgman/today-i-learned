@@ -682,3 +682,297 @@ readOnly는 크게 3곳에서 적용된다
     - 읽기, 쓰기 데이터베이스를 구분해 요청한다. 읽기 전용 트랜잭션의 경우 읽기 데이터베이스의 커넥션을 획득해 사용한다
 - 데이터베이스
     - 데이터베이스에 따라 읽기 전용 트랜잭션의 경우 읽기만 하면 되므로 내부에서 성능 최적화가 발생한다.
+
+
+## 예외와 트랜잭션 커밋, 롤백 - 기본
+예외가 발생했는데 내부에서 예외를 처리하지 못하고 트랜잭션 범위 밖으로 예외를 던지면 어떻게 될까?
+![alt text](image-25.png)
+
+스프링 트랜잭션 AOP는 예외 발생 시 종류에 따라 트랜잭션을 커밋하거나 롤백한다.
+- `RuntimeException, Error`와 그 하위 예외가 발생하면 롤백한다.
+- `Exception`과 그 하위 예외가 발생하면 커밋한다.
+
+### runtimeException() - 런타임 예외 발생
+~~~java
+@Transactional
+public void runtimeException() {
+    log.info("call runtimeException");
+    throw new RuntimeException();
+}
+~~~
+- `RuntimeException`이 발생하므로 트랜잭션이 롤백된다.
+~~~
+Getting transaction for [com.odg.springtx.exception.RollbackTest$RollbackService.runtimeException]
+Completing transaction for [com.odg.springtx.exception.RollbackTest$RollbackService.runtimeException] after exception: java.lang.RuntimeException
+Initiating transaction rollback
+Rolling back JPA transaction on EntityManager [SessionImpl(1135893732<open>)]
+~~~
+
+### checkecException() - 체크 예외 발생
+~~~java
+@Transactional
+public void checkedException() throws MyException {
+    log.info("call checkedException");
+    throw new MyException();
+}
+
+static class MyException extends Exception {
+
+}
+~~~
+- MyException은 체크예외인 Exception을 상속받은 예외이다. 따라서 예외가 발생해도 트랜잭션이 커밋된다.
+~~~
+Getting transaction for [com.odg.springtx.exception.RollbackTest$RollbackService.checkedException]
+Completing transaction for [com.odg.springtx.exception.RollbackTest$RollbackService.checkedException] after exception: com.odg.springtx.exception.RollbackTest$MyException
+Initiating transaction commit
+Committing JPA transaction on EntityManager [SessionImpl(199895099<open>)]
+~~~
+
+### rollbackFor() - 체크 예외를 강제로 롤백
+~~~java
+@Transactional(rollbackFor = MyException.class)
+public void rollbackFor() throws MyException {
+    log.info("call rollbackFor");
+    throw new MyException();
+}
+~~~
+~~~
+Getting transaction for [com.odg.springtx.exception.RollbackTest$RollbackService.rollbackFor]
+Completing transaction for [com.odg.springtx.exception.RollbackTest$RollbackService.rollbackFor] after exception: com.odg.springtx.exception.RollbackTest$MyException
+Initiating transaction rollback
+Rolling back JPA transaction on EntityManager [SessionImpl(510382951<open>)]
+~~~
+- 특정 예외를 강제로 롤백하고자 한다면 `rollbackFor`를 사용하면 된다. (해당 예외의 자식들도 포함)
+
+## 예외와 트랜잭션 커밋, 롤백 - 활용
+스프링은 왜 체크 예외는 커밋하고, 런타임 예외는 롤백을 하는걸까? <br>
+스프링은 기본적으로 체크 예외는 비즈니스 의미가 있을 때 사용하고, 런타임 예외는 복구 불가능한 예외로 가정한다.
+
+한 가지 예제를 살펴보자
+
+**비즈니스 요구사항**<br>
+주문 시 상황에 따라 아래와 같이 조치한다. 
+1. `정상`: 주문 시 결제를 성공하면 주문 데이터를 저장하고 결제 상태를 `완료`로 처리한다.
+2. `시스템 예외`: 주문 시 내부에 복구 불가능한 예외가 발생하면 전체 데이터를 롤백한다.
+3. `비즈니스 예외`: 주문 시 잔고가 부족하면 주문 데이터를 저장하고 결제 상태를 대기로 처리한다.
+    - 이 때 고객에게 잔고가 부족하다는 것을 알린다.
+
+결제 잔고가 부족하면 `NotEnoughMoneyException`이라는 체크 예외가 발생한다고 하자. 이 예외는 시스템에 문제가 있어 발생하는 예외가 아닌 비즈니스 상황에서 문제 때문에 발생한 예외이다. 이러한 예외를 비즈니스 예외라고 한다. 비즈니스 예외는 매우 중요하고 반드시 처리해야 하는 경우가 많기 때문에 체크 예외를 고려할 수 있다.
+
+~~~java
+public class NotEnoughMoneyException extends Exception {
+
+    public NotEnoughMoneyException(String message) {
+        super(message);
+    }
+}
+~~~
+- 잔고 부족 시 발생하는 비즈니스 예외, Exception을 상속받아 체크 예외가 된다.
+
+~~~java
+@Entity
+@Table(name = "orders")
+@Getter @Setter
+public class Order {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String username; // 정상, 예외, 잔고부
+    private String payStatus; // 대기, 완
+}
+~~~
+- JPA를 사용하는 Order 엔티티
+- `@Table(name = "orders")` 애노테이션이 붙어있는데 테이블 이름을 지정하지 않으면 테이블 이름은 클래스 이름을 따라 `order`가 된다. order는 데이터베이스 내에서 예약어로 사용하기 때문에 테이블 이름으로 사용할 수 없다. 그래서 orders라는 테이블 이름을 따로 지정해주었다.
+
+~~~java
+public interface OrderRepository extends JpaRepository<Order, Long> {
+}
+~~~
+- 스프링 데이터 JPA 사용
+
+~~~java
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+
+    // JPA는 트랜잭션 커밋 시점에 Order 데이터를 DB에 반영한다.
+    @Transactional
+    public void order(Order order) throws NotEnoughMoneyException {
+
+        log.info("order 호출");
+        orderRepository.save(order);
+
+        log.info("결제 프로세스 진입");
+        if (order.getUsername().equals("예외")) {
+
+            log.info("시스템 예외 발생");
+            throw new RuntimeException("시스템 예외");
+        } else if (order.getUsername().equals("잔고부족")) {
+
+            log.info("잔고 부족 비즈니스 예외 발생");
+            order.setPayStatus("대기");
+            throw new NotEnoughMoneyException("잔고가 부족합니다.");
+        } else {
+
+            // 정상 승인
+            log.info("정상 승인");
+            order.setPayStatus("완료");
+
+        }
+
+        log.info("결제 프로세스 완료");
+
+    }
+}
+~~~
+- 사용자 이름에 따라 처리 프로세스가 달라진다
+    - 기본: `payStatus`를 완료 상태로 처리하고 정상 처리된다.
+    - 예외: `RuntimeException("시스템 예외")` 런타임 예외가 발생한다.
+    - 잔고부족
+        - `payStatus`를 대기 상태로 처리한다.
+        - `NotEnoughMoneyException("잔고가 부족합니다")` 체크 예외 발생
+        - `payStatus`를 대기 상태로 두고, 체크 예외가 발생하지만 order 데이터는 커밋되기를 기대한다.
+
+이제 테스트를 진행해보자
+~~~java
+@Slf4j
+@SpringBootTest
+class OrderServiceTest {
+
+    @Autowired
+    OrderService orderService;
+
+    @Autowired
+    OrderRepository orderRepository;
+
+    @Test
+    void complete() throws NotEnoughMoneyException {
+        // given
+        Order order = new Order();
+        order.setUsername("정상");
+
+        // when
+        orderService.order(order);
+
+        // then
+        Order findOrder = orderRepository.findById(order.getId()).get();
+        assertThat(findOrder.getPayStatus()).isEqualTo("완료");
+    }
+
+    @Test
+    void runtimeException() throws NotEnoughMoneyException {
+        // given
+        Order order = new Order();
+        order.setUsername("예외");
+
+        // when
+        assertThatThrownBy(() -> orderService.order(order))
+                .isInstanceOf(RuntimeException.class);
+
+
+        // then
+        Optional<Order> orderOptional = orderRepository.findById(order.getId());
+        assertThat(orderOptional.isEmpty()).isTrue();
+    }
+
+    @Test
+    void bizException() {
+        // given
+        Order order = new Order();
+        order.setUsername("잔고부족");
+
+        // when
+        try {
+            orderService.order(order);
+        } catch (NotEnoughMoneyException e) {
+            log.info("고객에게 잔고 부족을 알리고 별도의 계좌로 입금하도록 안내");
+        }
+
+
+        // then
+        Order findOrder = orderRepository.findById(order.getId()).get();
+        assertThat(findOrder.getPayStatus()).isEqualTo("대기");
+    }
+}
+~~~
+application.properties에 `logging.level.org.hibernate.SQL=DEBUG`를 추가하면 JPA가 실행하는 SQL를 볼 수 있다.
+
+메모리 DB를 통해 테스트를 수행하면 테이블 자동 생성 옵션이 활성화된다. JPA는 엔티티 정보를 참고해 테이블을 자동으로 생성한다.
+
+### complete()
+~~~java
+@Test
+void complete() throws NotEnoughMoneyException {
+    // given
+    Order order = new Order();
+    order.setUsername("정상");
+
+    // when
+    orderService.order(order);
+
+    // then
+    Order findOrder = orderRepository.findById(order.getId()).get();
+    assertThat(findOrder.getPayStatus()).isEqualTo("완료");
+}
+~~~
+username이 `정상`일 경우 모든 프로세스가 정상으로 수행된다.
+
+### runtimeException()
+~~~java
+@Test
+void runtimeException() throws NotEnoughMoneyException {
+    // given
+    Order order = new Order();
+    order.setUsername("예외");
+
+    // when
+    assertThatThrownBy(() -> orderService.order(order))
+            .isInstanceOf(RuntimeException.class);
+
+
+    // then
+    Optional<Order> orderOptional = orderRepository.findById(order.getId());
+    assertThat(orderOptional.isEmpty()).isTrue();
+}
+~~~
+- username이 `예외`로 설정되어있다.
+- 따라서 `RuntimeException("시스템 예외")` 런타임 예외가 발생한다.
+- 런타임 예외로 롤백이 수행되어 Order 데이터가 비어있을 것이다.
+
+### bizException()
+~~~java
+@Test
+void bizException() {
+    // given
+    Order order = new Order();
+    order.setUsername("잔고부족");
+
+    // when
+    try {
+        orderService.order(order);
+    } catch (NotEnoughMoneyException e) {
+        log.info("고객에게 잔고 부족을 알리고 별도의 계좌로 입금하도록 안내");
+    }
+
+
+    // then
+    Order findOrder = orderRepository.findById(order.getId()).get();
+    assertThat(findOrder.getPayStatus()).isEqualTo("대기");
+}
+~~~
+- username이 잔고부족으로 설정되어 있다.
+- 따라서 `NotEnoughMoneyException`이 발생한다.
+- 체크 예외로 커밋이 수행되기 때문에 Order 데이터가 저장된다.
+- `payStatus`가 `대기`로 변경되어 저장되어있는 것을 확인할 수 있다.
+
+
+### 정리
+- `NotEnoughMoneyException`은 비즈니스 문제 상황을 예외를 통해 알려준다. `리턴 값` 처럼 사용되는 것이다. 그렇기 때문에 이 경우에는 트랜잭션을 커밋하는 것이 맞다. 만약 롤백을 해버리면 생성된 `Order`자체가 사라지게 되고 고객에게 잔고 부족을 알린다 하더라도 `Order` 자체가 사라지기 때문에 문제가 된다.
+- 비즈니스 상황에 따라 체크 예외의 경우에도 롤백을 하고자 한다면 `rollbackFor` 옵션을 사용하면 된다.
+- 런타임 예외는 항상 롤백된다. 
+
