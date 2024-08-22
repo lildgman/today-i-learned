@@ -12,3 +12,4 @@
 - [데이터 접근 기술 - 활용 방안](tip.md) 
 - [스프링 트랜잭션의 이해](spring_transaction.md)
 - [스프링 트랜잭션 전파1 - 기본](propagation1.md)
+- [스프링 트랜잭션 전파2 - 활용](propagation2.md)
