@@ -437,3 +437,103 @@ void outerTxOn_fail() {
   - `MemberService`가 예외를 던졌기 때문에 트랜잭션 AOP도 해당 예외를 밖으로 던진다
 - 클라이언트A는 `LogRepository`부터 넘어온 런타임 예외를 받게 된다.
 
+회원과 회원 이력 로그를 처리하는 부분을 하나의 트랜잭션으로 묶은 덕분에 문제가 발생했을 때 회원과 회원 이력 로그가 모두 함께 롤백된다. 따라서 데이터 정합성에 문제가 발생하지 않는다.
+
+## 트랜잭션 전파 활용6 - 복구 REQUIRED
+위에서 회원과 로그를 하나의 트랜잭션으로 묶어 데이터 정합성 문제를 해결하였다. 그런데 회원 이력 로그를 DB에 남기는 작업에 문제가 발생해 회원 가입 자체가 안되는 경우가 발생하게 되었다. 이를 막기위해 요구사항이 변경되었다.
+
+회원가입을 시도한 로그를 남기는데 실패하더라도 회원 가입은 유지되어야 한다.
+
+~~~java
+/**
+ * memberService @Transactional: On
+ * memberRepository @Transactional:ON
+ * logRepository @Transactional:ON EXCEPTION
+ */
+@Test
+void recoverException_fail() {
+    //given
+    String username = "로그예외_recoverException_fail";
+
+    //when
+    assertThatThrownBy(() -> memberService.joinV2(username))
+            .isInstanceOf(UnexpectedRollbackException.class);
+
+    //when
+    assertTrue(memberRepository.find(username).isEmpty());
+    assertTrue(logRepository.find(username).isEmpty());
+
+}
+~~~
+- `joinV2()`에는 예외를 잡아 정상흐름으로 변환하는 로직이 있다.
+
+![alt text](image-46.png)
+- 내부 트랜잭션에서 `rollbackOnly`를 설정하기 때문에 정상 흐름 처리를 해서 외부 트랜잭션에서 커밋을 호출해도 물리 트랜잭션은 롤백된다.
+
+![alt text](image-47.png)
+- `LogRepository`에서 예외가 발생한다. 예외를 던지게 되면 `LogRepository`의 트랜잭션 AOP가 해당 예외를 받는다.
+- 신규 트랜잭션이 아니므로 물리 트랜잭션을 롤백하지 않고 트랜잭션 동기화 매니저에 `rollbackOnly`를 설정한다.
+- 이후 트랜잭션 AOP는 전달받은 예외를 밖으로 던진다.
+- `MemberService`가 예외를 복구한다. 그리고 정상적으로 리턴한다.
+- 정상 흐름이 되었으므로 `MemberService`의 트랜잭션 AOP는 커밋을 호출
+- 커밋 호출 시 신규 트랜잭션이기 때문에 실제 물리 트랜잭션을 커밋한다. 이 때 `rollbackOnly`를 체크한다.
+- `rollbackOnly`가 체크되어 있기 때문에 물리 트랜잭션을 롤백한다.
+- 트랜잭션 매니저는 `UnexpectedRollbackException` 예외를 던진다.
+- 트랜잭션 AOP도 전달받은 `UnexpectedRollbackException`을 클라이언트로 던진다.
+
+**정리**
+- 논리 트랜잭션 중 하나라도 롤백되면 전체 트랜잭션은 롤백된다.
+- 내부 트랜잭션이 롤백 되었는데 외부 트랜잭션이 커밋되면 `UnexpectedRollbackException` 예외가 발생
+- `rollbackOnly`가 있는 상황에서 커밋 발생 시 `UnexpectedRollbackException` 예외 발생
+
+
+## 트랜잭션 전파 활용7 - 복구 REQUIRES_NEW
+**회원 가입을 시도한 로그를 남기는데 실패하더라도 회원 가입은 유지되어야 한다.**
+~~~java
+/**
+ * memberService @Transactional: On
+ * memberRepository @Transactional:ON
+ * logRepository @Transactional:ON(REQUIRES_NEW) EXCEPTION
+ */
+@Test
+void recoverException_success() {
+    //given
+    String username = "로그예외_recoverException_success";
+
+    //when
+    memberService.joinV2(username);
+
+    //when
+    assertTrue(memberRepository.find(username).isPresent());
+    assertTrue(logRepository.find(username).isEmpty());
+
+}
+~~~
+
+~~~java
+@Transactional(propagation = Propagation.REQUIRES_NEW)
+public void save(Log logMessage) 
+~~~
+항상 신규 트랜잭션을 생성하는 옵션 `REQUIRES_NEW`을 적용시켰다.
+
+![alt text](image-48.png)
+- `MemberRepository`는 `REQUIRED` 옵션을 사용하기 때문에 기존 트랜잭션에 참여한다.
+- `LogRepository`는 `REQUIRES_NEW` 옵션을 사용하기 때문에 항상 새로운 트랜잭션을 만든다. 따라서 이 트랜잭션 안에는 커넥션도 별도로 사용하게 된다.
+
+
+![alt text](image-49.png)
+- `LogRepository`에서 예외가 발생, 예외를 던지면 `LogRepository`의 트랜잭션 AOP가 해당 예외를 받는다.
+- `REQUIRES_NEW`를 사용한 신규 트랜잭션이기 때문에 물리 트랜잭션을 롤백한다.
+- 물리 트랜잭션을 롤백했기 때문에 `rollbackOnly`를 표시하지 않는다.
+- `REQUIRES_NEW`를 사용한 물리 트랜잭션은 롤백되고 완전히 끝나버린다.
+- 이후 트랜잭션 AOP는 전달받은 예외를 밖으로 던진다.
+- `MemberService`가 예외를 받아 복구를 진행한다. 그리고 정상적으로 리턴한다.
+- 정상 흐름이 되었으므로 `MemberService`의 트랜잭션 AOP는 커밋을 호출한다.
+- 커밋을 호출할 때 신규 트랜잭션이므로 실제 물리 트랜잭션을 커밋해야한다. 이때 `rollbackOnly`를 체크한다.
+- `rollbackOnly`가 없으므로 물리 트랜잭션을 커밋한다
+- 이후 정상 흐름이 반환된다.
+
+결과적으로 회원 데이터는 저장되고, 로그 데이터만 롤백되는 것을 확인할 수 있다.
+
+주의할 점이 있는데<br>
+`REQUIRES_NEW`를 사용하게 되면 하나의 HTTP 요청에 2개의 데이터베이스 커넥션을 사용하게 된다. 성능이 중요한 곳에서는 이 부분에 주의해야한다.
