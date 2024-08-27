@@ -22,6 +22,7 @@
 ## 자바
 - [자바 컴파일 과정](java/markdown/compile/compile.md)
 - [변수](java/markdown/variable.md)
+- [Call by Value & Call by reference](java/markdown/java_call.md) 
 - [예외](java/markdown/exception.md)
 - [Comparable vs Comparator](java/markdown/comparable_comparator.md)
 
