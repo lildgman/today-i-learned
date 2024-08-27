@@ -211,3 +211,34 @@ public class QuickSortEx {
 ![alt text](image-13.png)
 - 결과적으로 리스트에는 각 데이터가 몇 개씩 있는지 개수가 기록된다.
 - 결과를 확인할 때는 리스트의 첫번째 데이터부터 하나씩 그 만큼 반복하여 인덱스를 출력한다.
+
+~~~java
+public class CountingSortEx {
+
+    public static final int MAX_VALUE = 15;
+
+    public static void main(String[] args) {
+        int n = 15;
+
+        // 모든 원소 값은 0보다 크거나 같다고 가정
+        int[] arr = {7, 5, 9, 0, 14, 1, 6, 2, 9, 1, 4, 8, 0, 5, 12};
+
+        // 모든 범위를 포함하는 배열 선언
+        int[] count = new int[MAX_VALUE + 1];
+
+        for (int i = 0; i < n; i++) {
+            count[arr[i]] += 1;
+        }
+
+        for (int i = 0; i <= MAX_VALUE; i++) {
+            for (int j = 0; j < count[i]; j++) {
+                System.out.print(i + " ");
+            }
+        }
+    }
+}
+~~~
+- 시간 복잡도와 공간 복잡도 모두 O(N+K)
+- 때에 따라 비효율적이다
+    - ex) 데이터가 0과 999999 단 2개로만 이루어져있을 때
+- 동일한 값을 가지는 데이터가 여러 개 등장할 때 효과적이다.
