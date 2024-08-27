@@ -130,3 +130,84 @@ public class InsertionSortEx {
 ### 퀵 정렬의 시간 복잡도
 - 평균의 경우 O(NlogN)의 시간 복잡도를 가진다.
 - 최악의 경우 O(N^2)의 시간 복잡도를 가진다
+
+~~~java
+public class QuickSortEx {
+
+    public static void quickSort(int[] arr, int start, int end) {
+
+        // 원소가 1개인 경우 종료
+        if (start >= end) {
+            return;
+        }
+
+        // pivot은 첫번째 요소
+        int pivot = start;
+        int left = start + 1;
+        int right = end;
+
+        // 교차되기 전까지 반복
+        while (left <= right) {
+            // 피벗보다 큰 데이터를 찾을 때까지 반복
+            while (left <= end && arr[left] <= arr[pivot]) {
+                left++;
+            }
+
+            // 피벗보다 작은 데이터를 찾을 때까지 반복
+            while (right > start && arr[right] >= arr[pivot]) {
+                right--;
+            }
+
+            // 엇갈렸다면 작은 데이터와 피벗을 교체
+            if (left > right) {
+                int tmp = arr[pivot];
+                arr[pivot] = arr[right];
+                arr[right] = tmp;
+            } else {
+                // 엇갈리지 않았다면 작은 데이터와 큰 데이터 교체
+                int tmp = arr[left];
+                arr[left] = arr[right];
+                arr[right] = tmp;
+            }
+
+            // 분할 이후 왼쪽 부분과 오른쪽 부분 각각 정렬 수행
+            quickSort(arr, start, right - 1);
+            quickSort(arr, right + 1, end);
+
+        }
+
+
+    }
+
+    public static void main(String[] args) {
+        int n = 10;
+        int[] arr = {7, 5, 9, 0, 3, 1, 6, 2, 4, 8};
+
+        System.out.println("정렬 전");
+        for (int i = 0; i < arr.length; i++) {
+            System.out.print(arr[i] + " ");
+        }
+
+        System.out.println();
+
+        quickSort(arr, 0, n - 1);
+
+        System.out.println("정렬 후");
+        for (int i = 0; i < arr.length; i++) {
+            System.out.print(arr[i] + " ");
+        }
+    }
+}
+~~~
+
+## 계수 정렬
+- 특정 조건이 부합할 때만 사용할 수 있는 매우 빠른 정렬 알고리즘
+    - 계수 정렬은 `데이터 크기의 범위가 제한되어 정수 형태로 표현할 수 있을 때` 사용
+- 데이터 개수가 N, 데이터(양수) 중 최댓값이 K일 때 최악의 경우에도 수행시간 O(N + K)를 보장한다.
+
+### 예시
+![alt text](image-12.png)
+- 데이터를 하나씩 확인하면서 데이터의 값과 동일한 인덱스의 데이터를 1씩 증가시킨다.
+![alt text](image-13.png)
+- 결과적으로 리스트에는 각 데이터가 몇 개씩 있는지 개수가 기록된다.
+- 결과를 확인할 때는 리스트의 첫번째 데이터부터 하나씩 그 만큼 반복하여 인덱스를 출력한다.
