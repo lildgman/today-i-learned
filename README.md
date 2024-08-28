@@ -32,3 +32,6 @@
 - [스프링 MVC - 2](spring/spring-mvc/markdown/springmvc2.md)
 - [스프링 DB - 1](spring/jdbc/markdown/springdb1.md)
 - [스프링 DB - 2](spring/spring-db/markdown/springdb2.md)
+
+## JPA
+- [자바 ORM 표준 JPA 프로그래밍 - 기본편](jpa/markdown/jpa_basic/basic.md)
