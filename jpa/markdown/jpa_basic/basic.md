@@ -4,3 +4,4 @@
 ## 목차
 - [JPA 시작하기](jpa_start.md)
 - [영속성 컨텍스트](persistence_context.md)
+- [엔티티 매핑](entity_mapping.md)
