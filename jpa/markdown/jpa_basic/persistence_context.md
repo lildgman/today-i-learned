@@ -94,6 +94,11 @@ System.out.println("=== AFTER ===");
 `em.remove(member)`: 객체를 삭제한 상태
 
 ## 영속성 컨텍스트의 이점
+- 1차 캐시
+- 동일성 보장
+- 트랜잭션을 지원하는 쓰기 지연
+- 변경 감지
+- 지연 로딩
 ### 1차 캐시
 ~~~java
 Member member = new Member();
@@ -289,3 +294,70 @@ Hibernate:
 - em.flush()
 - 트랜잭션 커밋 - 자동으로 호출
 - JPQL 쿼리 실행 - 자동으로 호출
+
+**주의사항**
+- 플러시는 영속성 컨텍스트를 비우지 않는다.
+- 영속성 컨텍스트의 변경 내용을 데이터베이스에 동기화 하는 것을 플러시라 한다.
+- 트랜잭션이라는 작업 단위가 중요하다. -> 커밋 직전에만 동기화하면 된다.
+
+## 준영속 상태
+- 영속 상태의 엔티티가 영속성 컨텍스트에서 분리되는 것을 말한다.
+- 영속성 컨텍스트가 제공하는 기능을 사용하지 못한다.
+
+### 준영속 상태로 만드는 방법
+em.detach(entity): 특정 엔티티만 준영속 상태로 전환
+~~~java
+Member findMember = em.find(Member.class, 150L);
+findMember.setName("AAAA");
+
+em.detach(findMember);
+  
+System.out.println("=================");
+~~~
+~~~
+Hibernate: 
+    select
+        m1_0.id,
+        m1_0.name 
+    from
+        Member m1_0 
+    where
+        m1_0.id=?
+=================
+~~~
+- update쿼리가 생성되지 않은 것을 볼 수 있다. 
+
+em.clear(): 영속성 컨텍스트 완전히 초기화
+~~~java
+Member findMember = em.find(Member.class, 150L);
+findMember.setName("AAaaAA");
+
+em.clear();
+Member findMember2 = em.find(Member.class, 150L);
+
+System.out.println("=================");
+tx.commit();
+~~~
+~~~
+Hibernate: 
+    select
+        m1_0.id,
+        m1_0.name 
+    from
+        Member m1_0 
+    where
+        m1_0.id=?
+Hibernate: 
+    select
+        m1_0.id,
+        m1_0.name 
+    from
+        Member m1_0 
+    where
+        m1_0.id=?
+=================
+~~~
+- select 쿼리가 두 번 생성된 것을 볼 수 있다.
+- 영속성 컨텍스트가 초기화 됐기 때문에 1차 캐시가 사라졌기 때문에 두번째 조회했을 경우 select 쿼리를 또 생성한다.
+
+em.close(): 영속성 컨텍스트 종료

@@ -4,8 +4,9 @@
 - [컴퓨터구조](computer-structure/computer-structure.md)
 ## 운영체제
 
-## HTTP
-- [HTTP 웹 기본 지식](http/http-basic.md)
+## WEB
+- [HTTP 웹 기본 지식](web/http-basic.md)
+- [브라우저는 어떻게 동작하는가?](web/howbrowserwork.md)
 
 ## 데이터베이스
 - [혼자 공부하는 SQL](database/markdown/hongong/hongong.md)
