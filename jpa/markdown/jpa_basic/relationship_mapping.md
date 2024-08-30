@@ -1,133 +1,39 @@
-# 연관관계 매핑 기초
-## 연관관계가 필요한 이유
-"객체지향 설계의 목표는 자율적인 객체들의 협력 공동체를 만드는 것이다." <br>
+# 다양한 연관관계 매핑
+## 연관관계 매핑시 고려사항
+- 다중성
+- 단방향, 양방향
+- 연관관계의 주인
 
-### 예제 시나리오
-- 회원과 팀이 있다.
-- 회원은 하나의 팀에만 소속될 수 있다.
-- 회원과 팀은 다대일 관계이다.
+### 다중성
+- 다대일: `@ManyToOne`
+- 일대다: `@OneToMany`
+- 일대일: `@OneToOne`
+- 다대다: `@ManyToMany`
+  - 실무에서 쓰지말자
 
-### 객체를 테이블에 맞추어 모델링(연관관계가 없는 객체)
-![alt text](image-4.png)
+### 단방향, 양방향
+- 테이블
+  - 외래 키 하나만으로 양쪽으로 조인이 가능
+  - 사실 방향의 개념이 없다
+- 객체
+  - 참조용 필드가 있는 쪽으로만 참조 가능
+  - 한쪽만 참조하면 단방향
+  - 양쪽이 서로 참조하면 양방향
 
-~~~java
-public class Member {
-    @Id
-    @GeneratedValue
-    @Column(name = "MEMBER_ID")
-    private Long id;
+### 연관관계의 주인
+- 테이블은 외래 키 하나로 두 테이블이 연관관계를 맺는다.
+- 객체에서 양방향 관계는 A->B, B->A 와 같이 참조가 2군데에 존재해야 한다.
+- 둘 중 테이블의 왜래 키를 관리할 곳을 정해야한다.
+- **외래 키를 관리하는 참조**를 연관관계의 주인으로 정하자
+- 주인의 반대편은 외래 키에 영향을 주지 않고, 단순 조회하는 기능만 가능하다.
 
-    @Column(name = "name")
-    private String username;
-
-    @Column(name = "TEAM_ID")
-    private Long teamId;
-  ...
-}
-
-@Entity
-public class Team {
-
-    @Id
-    @GeneratedValue
-    @Column(name = "TEAM_ID")
-    private Long id;
-    private String name;
-  ...
-}
-~~~
-- 객체를 테이블에 맞추어 모델링 하였다.
-- 참조 대신에 외래키를 그대로 사용
-
-~~~java
-//팀 저장
-Team team = new Team();
-team.setName("TeamA");
-em.persist(team);
-
-//회원 저장
-Member member = new Member();
-member.setUsername("member1");
-member.setTeamId(team.getId());
-em.persist(member);
-
-Member findMember = em.find(Member.class, member.getId());
-Long findTeamId = findMember.getTeamId();
-
-Team findTeam = em.find(Team.class, findTeamId);
-
-tx.commit();
-~~~
-- 외래키 식별자를 직접 다루고 있다.
-- 조회 시 식별자로 조회한다. 이러한 방법은 객체지향적인 방법이 아니다.
-
-### 겍체를 테이블에 맞추어 데이터 중심으로 모델링하면 협력 관계를 만들 수 없다
-- 테이블은 외래 키 조인을 사용해 연관된 테이블을 찾는다.
-- 객체는 참조를 사용해 연관된 객체를 찾는다
-
-## 단방향 연관관계
-### 객체 지향 모델링
-![alt text](image-5.png)
-
+## 다대일(N:1)
+### 다대일 단방향
+![alt text](image-10.png)
 ~~~java
 @Entity
 public class Member {
-    @Id
-    @GeneratedValue
-    @Column(name = "MEMBER_ID")
-    private Long id;
 
-    @Column(name = "name")
-    private String username;
-    
-    @ManyToOne
-    @JoinColumn(name = "TEAM_ID")
-    private Team team;
-}
-~~~
-### ORM 매핑
-![alt text](image-6.png)
-
-연관관계 저장
-~~~java
-//팀 저장
-Team team = new Team();
-team.setName("TeamA");
-em.persist(team);
-
-//회원 저장
-Member member = new Member();
-member.setUsername("member1");
-member.setTeam(team);
-
-em.persist(member);
-~~~
-
-연관관계 조회
-~~~java
-Member findMember = em.find(Member.class, member.getId());
-Team findTeam = findMember.getTeam();
-~~~
-
-연관관계 수정
-~~~java
-// 새로운 팀B
-Team teamB = new Team(); 
-teamB.setName("TeamB"); 
-em.persist(teamB);
-// 회원1에 새로운 팀B 설정 
-member.setTeam(teamB);
-~~~
-
-## 양방향 매핑
-![alt text](image-7.png)
-- 테이블에서 연관관계는 외래키 하나로 단방향, 양방향 모두 다 가능하다.
-- 문제는 객체이다.
-- 멤버에서 팀을 조회할 수 있었지만, 팀에서는 멤버를 조회할 수 없다.
-- 팀에서 members라는 리스트를 넣어줘야 양방향으로 조회가 가능하다.
-~~~java
-@Entity
-public class Member {
     @Id
     @GeneratedValue
     @Column(name = "MEMBER_ID")
@@ -141,9 +47,27 @@ public class Member {
     private Team team;
 }
 ~~~
-- Member 엔티티는 단방향과 동일하다.
+
+### 다대일 양방향
+![alt text](image-9.png)
 
 ~~~java
+@Entity
+public class Member {
+
+    @Id
+    @GeneratedValue
+    @Column(name = "MEMBER_ID")
+    private Long id;
+
+    @Column(name = "name")
+    private String username;
+
+    @ManyToOne
+    @JoinColumn(name = "TEAM_ID")
+    private Team team;
+}
+
 @Entity
 public class Team {
 
@@ -157,35 +81,181 @@ public class Team {
     private List<Member> members = new ArrayList<>();
 }
 ~~~
-- Team 엔티티에 Members 리스트 컬렉션 추가
+- 외래 키가 있는 쪽이 연관관계의 주인
+- 양쪽을 서로 참조하도록 개발할 때 필요
 
-### 객체와 테이블이 관계를 맺는 차이
-- 객체 연관관계 = 2개
-  - 회원 -> 팀 연관관계 (단방향)
-  - 팀 -> 회원 연관관계 (단방향)
-- 테이블 연관관계 = 1개
-  - 회원 <-> 팀의 연관관계 1개 (양방향)
+## 일대다(1:N)
+### 일대다 단방향
+![alt text](image-11.png)
+~~~java
+@Entity
+public class Team {
 
-### 객체의 양방향 관계
-- 객체의 양방향 관계는 사실 서로 다른 단방향 관계 2개이다.
-- 객체를 양방향으로 참조하려면 단방향 연관관계를 2개 만들어야 한다.
+    @Id
+    @GeneratedValue
+    @Column(name = "TEAM_ID")
+    private Long id;
+    private String name;
 
-### 테이블의 양방향 연관관계
-- 테이블은 외래 키 하나로 두 테이블의 연관관계를 관리
-- 양쪽으로 조인할 수 있다.
+    @OneToMany
+    private List<Member> members = new ArrayList<>();
+}
 
-멤버에 있는 팀으로 외래키를 관리할 지 팀에 있는 members 리스트로 외래키를 관리할 지, 둘 중 하나를 주인으로 정해야한다.
+@Entity
+public class Member {
 
-### 연관관계의 주인
-양방향 매핑 규칙
-- 객체의 두 관계 중 하나를 연관관계의 주인으로 지정
-- 연관관계의 주인만이 외래 키를 관리(등록, 수정)
-- 주인이 아닌 쪽은 읽기만 가능
-- 주인은 `mappedBy` 속성 사용 x
-- 주인이 아니면 `mappedBy` 속성으로 주인 지정
+    @Id
+    @GeneratedValue
+    @Column(name = "MEMBER_ID")
+    private Long id;
 
-### 누구를 주인으로??
-- 외래 키가 있는 곳을 주인으로 정하자
-- 위 예제에서는 `Member.team`이 연관관계의 주인
+    @Column(name = "name")
+    private String username;
+}
+~~~ 
+~~~java
+Member member = new Member();
+member.setUsername("member1");
 
-![alt text](image-8.png)
+em.persist(member);
+
+Team team = new Team();
+team.setName("teamA");
+team.getMembers().add(member);
+
+em.persist(team);
+
+tx.commit();
+~~~
+~~~
+Hibernate: 
+    /* insert for
+        hellojpa.Member */insert 
+    into
+        Member (name, MEMBER_ID) 
+    values
+        (?, ?)
+Hibernate: 
+    /* insert for
+        hellojpa.Team */insert 
+    into
+        Team (name, TEAM_ID) 
+    values
+        (?, ?)
+Hibernate: 
+    update
+        Member 
+    set
+        TEAM_ID=? 
+    where
+        MEMBER_ID=?
+~~~
+- 업데이트 쿼리를 통해 멤버 테이블에 외래키가 추가되는 것을 볼 수 있다.
+- 팀 엔티티를 저장하는데 팀 테이블에서는 이 외래키를 어떻게 할 방법이 없다.
+- 그래서 멤버 테이블에서 업데이트를 하게 된다.
+
+**일대다 단방향 정리**
+- 일대다 단방향은 일대다에서 `일(1)`쪽에 연관관계의 주인이 있다.
+- 테이블 일대다 관계는 항상 `다(N) 쪽에 외래 키가 있다.`
+- 객체와 테이블의 차이 때문에 반대편 테이블의 외래 키를 관리하는 구조가 만들어진다.
+- `@JoinColumn`을 꼭 사용해야한다. 그렇지 않으면 조인 테이블 방식을 사용한다(중간에 테이블이 하나 추가된다.)
+- 단점
+  - 엔티티가 관리하는 외래 키가 다른 테이블에 존재한다.
+  - 연관관계 관리를 위해 추가적으로 UPDATE SQL을 실행한다.
+
+일대다 단방향 매핑보다는 `다대일 양방향 매핑`을 사용하자.
+
+### 일대다 양방향
+![alt text](image-12.png)
+
+~~~java
+@Entity
+public class Team {
+
+    @Id
+    @GeneratedValue
+    @Column(name = "TEAM_ID")
+    private Long id;
+    private String name;
+
+    @OneToMany
+    @JoinColumn(name = "TEAM_ID")
+    private List<Member> members = new ArrayList<>();
+}
+
+@Entity
+public class Member {
+
+    @Id
+    @GeneratedValue
+    @Column(name = "MEMBER_ID")
+    private Long id;
+
+    @Column(name = "name")
+    private String username;
+
+    @OneToMany
+    @JoinColumn(name = "TEAM_ID", insertable = false, updatable = false)
+    private Team team;
+}
+~~~
+- 공식적으로 존재하는 매핑은 아니다
+- `@JoinColumn(name = "TEAM_ID", insertable = false, updatable = false)`
+- `읽기 전용 필드`를 사용해 양방향처럼 사용하는 방법이다.
+- 그냥 `다대일 양방향`을 쓰자
+
+## 일대일(1:1)
+- 일대일 관계는 반대도 일대일
+- 주 테이블이나 대상 테이블 중에 외래 키 선택 가능
+  - 주 테이블에 외래 키
+  - 대상 테이블에 외래 키
+- 외래 키에 데이터베이스 유니크 제약조건 추가
+
+### 일대일: 주 테이블에 외래 키 단방향
+![alt text](image-13.png)
+- `@ManyToOne` 단방향 매핑과 유사하다.
+
+~~~java
+// Member Entity
+@OneToOne
+@JoinColumn(name = "LOCKER_ID")
+private Locker locker;
+
+// Locker Entity
+@Entity
+public class Locker {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String name;
+}
+~~~
+### 일대일: 주 테이블에 외래 키 양방향
+![alt text](image-14.png)
+- 다대일 양방향 매핑처럼 `외래 키가 있는 곳이 연관관계의 주인`
+~~~java
+// Locker Entity
+@OneToOne(mappedBy = "locker")
+private Member member;
+~~~
+
+### 일대일: 대상 테이블에 외래 키 단방향은 JPA에서 지원하지 않는다.
+
+### 일대일: 대상 테이블에 외래 키 양방향
+![alt text](image-15.png)
+- 일대일 주 테이블에 외래 키 양방향 매핑과 같다
+
+**정리**
+- 주 테이블에 외래 키
+  - 주 객체가 대상 객체의 참조를 가지는 것처럼 주 테이블에 외래 키를 두고 대상 테이블을 찾는다.
+  - 개발자들이 선호하는 방법
+  - JPA 매핑이 편리하다
+  - 주 테이블만 조회해도 대상 테이블에 데이터가 있는지 확인 가능
+  - 값이 없으면 외래 키에 null 허용
+- 대상 테이블에 외래키
+  - 대상 테이블에 외래키가 존재
+  - 전통적인 DBA가 선호
+  - 장점: 주 테이블과 대상 테이블을 일대일에서 일대다 관계로 변경할 때 테이블 구조가 유지된다.
+  - 단점: 프록시 기능 한계로 지연 로딩으로 설정해도 항상 즉시 로딩된다.

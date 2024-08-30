@@ -5,3 +5,5 @@
 - [JPA 시작하기](jpa_start.md)
 - [영속성 컨텍스트](persistence_context.md)
 - [엔티티 매핑](entity_mapping.md)
+- [연관관계 매핑 기초](relationship_mapping_basic.md)
+- [다양한 연관관계 매핑](relationship_mapping.md)
