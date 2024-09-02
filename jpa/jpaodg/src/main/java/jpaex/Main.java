@@ -1,6 +1,7 @@
 package jpaex;
 
 import jakarta.persistence.*;
+import jpaex.domain.Book;
 
 public class Main {
     public static void main(String[] args) {
@@ -12,6 +13,12 @@ public class Main {
 
         tx.begin();
         try {
+
+            Book book = new Book();
+            book.setName("JPA");
+            book.setAuthor("김영한");
+
+            em.persist(book);
 
             tx.commit();
         } catch (Exception e) {

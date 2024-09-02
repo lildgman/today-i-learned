@@ -7,3 +7,5 @@
 - [엔티티 매핑](entity_mapping.md)
 - [연관관계 매핑 기초](relationship_mapping_basic.md)
 - [다양한 연관관계 매핑](relationship_mapping.md)
+- [고급 매핑](relationship_mapping_expert.md)
+- [프록시](proxy.md) 
