@@ -9,3 +9,4 @@
 - [다양한 연관관계 매핑](relationship_mapping.md)
 - [고급 매핑](relationship_mapping_expert.md)
 - [프록시](proxy.md) 
+- [값 타입](valueType.md)
