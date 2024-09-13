@@ -1,6 +1,9 @@
 package hellojpa;
 
 import jakarta.persistence.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 
 import java.util.List;
 
@@ -16,34 +19,15 @@ public class JpaMain {
         tx.begin();
 
         try {
-            Member member = new Member();
-            member.setUsername("member1");
-            member.setHomeAddress(new Address("homecity", "street", "10000"));
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<Member> query = cb.createQuery(Member.class);
 
-            member.getFavoriteFoods().add("치킨");
-            member.getFavoriteFoods().add("족발");
-            member.getFavoriteFoods().add("피자");
+            Root<Member> m = query.from(Member.class);
 
-            member.getAddressHistory().add(new AddressEntity("city1", "street1","10000"));
-            member.getAddressHistory().add(new AddressEntity("city2", "street2","10000"));
+            CriteriaQuery<Member> cq = query.select(m).where(cb.equal(m.get("username"), "kim"));
+            List<Member> resultList = em.createQuery(cq).getResultList();
+             
 
-            em.persist(member);
-
-            em.flush();
-            em.clear();
-
-            System.out.println("===============start==============");
-            Member findMember = em.find(Member.class, member.getId());
-
-            Address findMemberAddress = findMember.getHomeAddress();
-            findMember.setHomeAddress(new Address("newCity", findMemberAddress.getStreet(), findMemberAddress.getZipcode()));
-
-            findMember.getFavoriteFoods().remove("치킨");
-            findMember.getFavoriteFoods().add("한식");
-
-            System.out.println("===============address==============");
-
-            tx.commit();
         } catch (Exception e) {
             tx.rollback();
             e.printStackTrace();

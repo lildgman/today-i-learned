@@ -224,4 +224,4 @@ findMember.getAddressHistory().add(new Address("newCity2", "street2", "20000"));
   - 생명 주기를 엔티티에 의존
   - 공유하지 않는 것이 안전(복사해서 사용)
   - 불변 객체로 만드는 것이 안전
-  
+   

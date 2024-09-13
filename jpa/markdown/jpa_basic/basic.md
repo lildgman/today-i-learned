@@ -10,3 +10,4 @@
 - [고급 매핑](relationship_mapping_expert.md)
 - [프록시](proxy.md) 
 - [값 타입](valueType.md)
+- [객체지향 쿼리 언어1 - 기본 문법](query_basic.md)
