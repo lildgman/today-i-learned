@@ -31,3 +31,81 @@ ANSI 표준 SQL이 지원하는 문법은 다 지원한다.<br>
 - 동적쿼리 작성이 편리하다.
 - 단순하고 쉬움
 - 실무 에서 사용 권장
+
+## 정리
+- JPQL은 객체지향 쿼리 언어이다. 따라서 테이블을 대상으로 쿼리하는 것이 아닌 **엔티티 객체를 대상으로 쿼리**한다.
+- JPQL은 SQL을 추상화해 특정 데이터베이스 SQL에 의존하지 않는다.
+- JPQL은 결국 SQL로 변환된다.
+
+## JPQL 문법
+~~~java
+Member singleResult = em.createQuery("select m from Member m where m.username =:username", Member.class)
+                    .setParameter("username", "hi")
+                    .getSingleResult();
+~~~
+- 엔티티와 속성은 대소문자 구분 O
+- JPQL 키워드는 대소문자 구분 X
+- 엔티티 이름 사용, 테이블 이름이 아니다.
+- **별칭 필수!**
+- 결과 조회 API
+  - getResultList(): 결과가 하나 이상일 때 리스트 반환, 결과가 없으면 빈 리스트 반환
+  - getSingleResult(): 결과가 정확히 하나, 단일 객체 반환
+    - 결과가 없으면 `NoResultException`
+    - 결과가 둘 이상이면 `NoUniqueResultException`
+
+## 프로젝션
+- SELECT절에 조회할 대상을 지정하는 것
+- 프로잭션 대상: 엔티티, 임베디드 타입, 스칼라 타입(숫자, 문자 등 기본 데이터 타입)
+- SELECT m FROM Member m -> 엔티티 프로젝션
+- SELECT m.team FROM Member m -> 엔티티 프로젝션
+- SELECT m.address FROM Member m -> 임베디드 타입 프로젝션
+- SELECT m.username, m.age FROM Member m -> 스칼라 타입 프로젝션
+- DISTINICT 중복 제거
+
+여기서 나온 결과들은 영속성 컨텍스트에서 관리된다.
+
+### 프로젝션 - 여러 값 조회
+- SELECT m.username, m.age FROM Member m
+- 1. Query 타입으로 조회
+- 2. Object[] 타입으로 조회
+- 3. new 명령어로 조회
+  - 단순 값을 DTO로 바로 조회
+    - SELECT new jpql.MemberDTO(m.username, m.age) from Member m
+    - 패키지 명을 포함한 전체 클래스 명 입력
+    - 순서와 타입이 일치하는 생성자가 필요
+
+## 페이징 API
+- setFirstResult(int startPosition): 조회 시작 위치(0부터 시작)
+- setMaxResults(int maxResult): 조회할 데이터 수
+~~~java
+List<Member> resultList = em.createQuery("select m from Member m order by m.age desc", Member.class)
+                    .setFirstResult(1)
+                    .setMaxResults(10)
+                    .getResultList();
+~~~
+
+## 조인
+- 내부 조인
+  - SELECT m FROM Member m [INNER] JOIN m.team t
+- 외부 조인
+  - SELECT m FROM Member m LEFT [OUTER] JOIN m.team t
+- 세터 조인
+  - SELECT count(m) from Member m, Team t where m.username = t.name
+
+### 조인 - ON 절
+- 조인 대상 필터링
+- 연관관계 없는 엔티티 외부 조인
+
+### 조인 대상 필터링
+ex) 회원과 팀을 조인하면서 팀 이름이 A인 팀만 조인
+- JPQL
+  - SELECT m, t FROM Member m LEFT JOIN m.team t on t.name = 'A'
+- SQL
+  - SELECT m.\*, t.\* FROM Member m LEFT JOIN Team t ON m.TEAM_ID=t.id and t.name='A'
+
+### 연관관계 없는 엔티티 외부 조인
+ex) 회원의 이름과 팀 이름이 같은 대상 외부 조인
+- JPQL
+  - SELECT m, t FROM Member m LEFT JOIN Team t on m.username = t.name
+- SQL
+  - SELECT m.\*, t.\* FROM Member m LEFT JOIN Team t ON m.username = t.name
