@@ -109,3 +109,15 @@ ex) 회원의 이름과 팀 이름이 같은 대상 외부 조인
   - SELECT m, t FROM Member m LEFT JOIN Team t on m.username = t.name
 - SQL
   - SELECT m.\*, t.\* FROM Member m LEFT JOIN Team t ON m.username = t.name
+
+## 서브쿼리
+- 나이가 평균보다 많은 회원
+  - select m from Member m where m.age > (select avg(m2.age) from Member m2)
+- 한 건이라도 주문한 고객
+  - select m from Member m where (select count(o) from Order o where m = o.member) > 0
+### 서브 쿼리 지원 함수
+- [NOT] EXISTS (subquery): 서브쿼리에 존재하면 참
+  - {ALL | ANY | SOME} (subquery)
+  - ALL 모두 만족하면 참
+  - ANY, SOME: 같은 의미, 조건을 하나라도 만족하면 참
+- [NOT] IN (subquery): 서브쿼리의 결과 중 하나라도 같은 것이 있으면 참

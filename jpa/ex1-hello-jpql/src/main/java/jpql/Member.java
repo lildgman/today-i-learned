@@ -15,6 +15,8 @@ public class Member {
     @JoinColumn(name = "TEAM_ID")
     private Team team;
 
+    private MemberType memberType;
+
     public void changeTeam(Team team) {
         this.team = team;
         team.getMembers().add(this);
