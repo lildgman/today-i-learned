@@ -15,6 +15,7 @@ public class Member {
     @JoinColumn(name = "TEAM_ID")
     private Team team;
 
+    @Enumerated(value = EnumType.STRING)
     private MemberType memberType;
 
     public void changeTeam(Team team) {
@@ -29,6 +30,15 @@ public class Member {
     public void setTeam(Team team) {
         this.team = team;
     }
+
+    public MemberType getMemberType() {
+        return memberType;
+    }
+
+    public void setMemberType(MemberType memberType) {
+        this.memberType = memberType;
+    }
+
     public Long getId() {
         return id;
     }

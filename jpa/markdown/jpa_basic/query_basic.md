@@ -115,9 +115,40 @@ ex) 회원의 이름과 팀 이름이 같은 대상 외부 조인
   - select m from Member m where m.age > (select avg(m2.age) from Member m2)
 - 한 건이라도 주문한 고객
   - select m from Member m where (select count(o) from Order o where m = o.member) > 0
+
 ### 서브 쿼리 지원 함수
 - [NOT] EXISTS (subquery): 서브쿼리에 존재하면 참
   - {ALL | ANY | SOME} (subquery)
   - ALL 모두 만족하면 참
   - ANY, SOME: 같은 의미, 조건을 하나라도 만족하면 참
 - [NOT] IN (subquery): 서브쿼리의 결과 중 하나라도 같은 것이 있으면 참
+
+### 서브 쿼리 - 예제
+- 팀A 소속인 회원
+  - select m from Member m where exists(select t from m.team t where t.name = '팀A')
+- 전체 상품 각각의 재고보다 주문량이 많은 주문들
+  - select o from Order o where o.orderAmount > ALL (select p.stockAmount from Product p)
+- 어떤 팀이든 팀에 소속된 회원
+  - select m from Member m where m.team = ANY (select t from Team t)
+
+### JPA 서브 쿼리 한계
+- JPA 표준 스펙에서는 WHERE, HAVING 절에서만 서브쿼리 사용 가능
+- 구현체인 하이버네이트에서 SELECT 절도 가능하다.
+- FROM절의 서브 쿼리는 현재 JPQL에서 불가능
+  - 조인으로 풀 수 있으면 풀어서 해결 가능
+  - 하이버네이트6 부터 FROM절의 서브쿼리 지원
+
+## JPQL 타입 표현과 기타식
+### JPQL 타입 표현
+- 문자: 'HELLO', 'she`s'
+- 숫자: 10L, 10D, 10F
+- Boolean: TRUE, FALSE
+- ENUM: jpql.MemberType.Admin(패키지명 포함)
+- 엔티티 타입: TYPE(m) = Member(상속관계에서 사용)
+
+### JPQL 기타
+- SQL과 문법이 같다
+- EXISTS, IN
+- AND, OR, IN
+- =, >, >=, <, <=, <>
+- BETWEEN, LIKE, IS NULL
