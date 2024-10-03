@@ -37,11 +37,11 @@ public class JpaMain {
             em.clear();
 
             String query =
-                    "select function('group_concat', m.username) " +
-                            "from Member m";
-            List<String> resultList = em.createQuery(query, String.class).getResultList();
+                    "select t.members From Team t";
 
-            for (String s : resultList) {
+            List resultList = em.createQuery(query, List.class).getResultList();
+
+            for (Object s : resultList) {
                 System.out.println("s = " + s);
             }
 

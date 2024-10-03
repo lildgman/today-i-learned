@@ -140,7 +140,7 @@ ex) 회원의 이름과 팀 이름이 같은 대상 외부 조인
 
 ## JPQL 타입 표현과 기타식
 ### JPQL 타입 표현
-- 문자: 'HELLO', 'she`s'
+- 문자: 'HELLO'
 - 숫자: 10L, 10D, 10F
 - Boolean: TRUE, FALSE
 - ENUM: jpql.MemberType.Admin(패키지명 포함)
@@ -152,3 +152,70 @@ ex) 회원의 이름과 팀 이름이 같은 대상 외부 조인
 - AND, OR, IN
 - =, >, >=, <, <=, <>
 - BETWEEN, LIKE, IS NULL
+
+### 조건식 - CASE 식 
+~~~java
+String query =
+        "select " +
+                "case when m.age <= 10 then '학생요금' " +
+                "   when m.age >= 60 then '경로요금' " +
+                "   else '일반요금' " +
+                "end " +
+        "from Member m";
+List<String> resultList = em.createQuery(query, String.class).getResultList();
+~~~
+
+- COALESCE: 하나씩 조회해 null이 아니면 결과 반환
+~~~java
+String query =
+        "select coalesce(m.username, '이름 없는 회원') " +
+                "from Member m";
+List<String> resultList = em.createQuery(query, String.class).getResultList();
+~~~
+
+- NULLIF: 두 값이 같으면 null 반환, 다르면 첫번째 값 반환
+~~~java
+String query =
+        "select nullif(m.username, '관리자') as username " +
+                "from Member m";
+List<String> resultList = em.createQuery(query, String.class).getResultList();
+~~~
+
+### JQPL 기본 함수
+- CONCAT: 문자를 합침
+- SUBSTRING: 문자 자르기
+- TRIM: 공백제거
+- LOWER,UPPER: 대소문자 변경
+- LENGTH: 문자열 길이
+- LOCATE: 문자열 위치 
+- ABS, SQRT, MOD
+- SIZE, INDEX(JPA 용도)
+  - SIZE: 양방향 연관관계에 걸려있는 컬렉션의 길이 반환
+
+### 사용자 정의 함수 호출
+- 하이버네이트는 사용 전 방언에 추가해야한다.
+~~~java
+package custom;
+
+import org.hibernate.boot.model.FunctionContributions;
+import org.hibernate.boot.model.FunctionContributor;
+import org.hibernate.dialect.function.StandardSQLFunction;
+import org.hibernate.type.StandardBasicTypes;
+
+public class CustomFunctionContributor implements FunctionContributor {
+
+    @Override
+    public void contributeFunctions(FunctionContributions functionContributions) {
+        functionContributions.getFunctionRegistry()
+                .register("group_concat", new StandardSQLFunction("group_concat", StandardBasicTypes.STRING));
+    }
+}
+~~~
+
+- `src/main/resources/META-INF/services/org.hibernate.boot.model.FunctionContributor` 파일 생성 
+- 해당 파일에 `FunctionContributor` 구현체 경로 입력
+~~~java
+String query =
+        "select function('group_concat', m.username) " +
+                "from Member m";
+~~~
