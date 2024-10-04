@@ -11,3 +11,4 @@
 - [프록시](proxy.md) 
 - [값 타입](valueType.md)
 - [객체지향 쿼리 언어1 - 기본 문법](query_basic.md)
+- [객체지향 쿼리 언어2 - 중급 문법](query_middle.md)
