@@ -1,4 +1,4 @@
-# 객체지향 쿼링 언어2 - 중급 문법
+# 객체지향 쿼리 언어2 - 중급 문법
 ## 경로 표현식
 - `.`을 찍어 객체 그래프를 탐색하는 것
 ~~~ java
@@ -344,3 +344,13 @@ List<Member> resultList = em.createQuery(query, Member.class)
 ~~~
 
 ## Named 쿼리
+- 미리 정의해서 이름을 부여해두고 사용하는 JPQL
+- 정적 쿼리
+- 어노테이션, XML에 정의
+- 애플리케이션 로딩 시점에 초기화 후 재사용
+- `애플리케이션 로딩 시점에 쿼리를 검증`
+~~~java
+List<Member> resultList = em.createNamedQuery("Member.findByUsername", Member.class)
+                    .setParameter("username", "회원1")
+                    .getResultList();
+~~~
