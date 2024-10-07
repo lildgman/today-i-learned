@@ -15,7 +15,7 @@ public class InsertionSortEx {
         System.out.println();
 
         // 삽입정렬
-        for (int i = 0; i < n; i++) {
+        for (int i = 1; i < n; i++) {
             // 인덱스 i부터 1까지 감소하며 반복
             for (int j = i; j > 0; j--) {
 
