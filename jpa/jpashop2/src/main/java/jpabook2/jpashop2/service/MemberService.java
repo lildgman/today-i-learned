@@ -48,4 +48,12 @@ public class MemberService {
         }
 
     }
+
+    // 변경 감지를 이용하여 회원 수정
+    @Transactional
+    public void update(Long id, String name) {
+        // 영속성 컨텍스트 안에 있는 회원을 조회해 회원 수정
+        Member findMember = memberRepository.findOne(id);
+        findMember.setUsername(name);
+    }
 }

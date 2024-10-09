@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.StringTokenizer;
 
+
+
 public class Ex2 {
     // N개 원소를 포함하고 있는 수열이 오름차순으로 정렬되어있다.
     // 이때 이 수열에서 x가 등장하는 횟수를 계산해라
@@ -21,28 +23,77 @@ public class Ex2 {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         StringTokenizer st = new StringTokenizer(br.readLine());
 
-        // 원소 개수
+        // 원소 개수 N
         int n = Integer.parseInt(st.nextToken());
-        // 개수를 찾을 원소
+
+        // 타겟 x
         int x = Integer.parseInt(st.nextToken());
 
-        // 수열 값 입력
-        int[] arr = new int[n];
+        // N개의 원소 개수 입력
         st = new StringTokenizer(br.readLine());
+        int[] arr = new int[n];
 
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < arr.length; i++) {
             arr[i] = Integer.parseInt(st.nextToken());
         }
 
-        int maxValue = arr[n - 1];
+        // 개수 구하기
+        int count = 0;
+//        for (int i = 0; i < arr.length; i++) {
+//            if (arr[i] == x) {
+//                count++;
+//            }
+//        }
 
-        // 값의 개수를 카운팅할 배열
-        int[] cArr = new int[maxValue];
+//        System.out.println(count);
 
-        for (int i = 0; i < arr.length; i++) {
-            cArr[arr[i]-1] += 1;
+        // x와 같은 값의 첫번째 인덱스 구하기
+        int firstIndex = getFirstIndex(arr, x,0, n - 1);
+
+        // x와 같은 값의 마지막 인덱스 구하기
+        int lastIndex = getLastIndex(arr, x, 0, n - 1);
+
+        System.out.println(lastIndex - firstIndex == 0 ? -1 : lastIndex - firstIndex);
+
+    }
+
+    private static int getLastIndex(int[] arr, int target, int start, int end) {
+
+        // 타겟보다 큰 인덱스를 찾는다.
+        // 중간값이 타겟보다 큰 경우 끝값을 중간으로 이동
+        while (start < end) {
+            int mid = (start + end) / 2;
+            if (arr[mid] > target) {
+                end = mid;
+            } else {
+                start = mid + 1;
+            }
         }
 
-        System.out.println(cArr[x-1]);
+        return end;
+    }
+
+    /**
+     * 타겟과 같은 같의 첫번째 인덱스를 구하는 함수
+      * @param arr
+     * @param start
+     * @param end
+     * @return
+     */
+    private static int getFirstIndex(int[] arr, int target ,int start, int end) {
+        // 이진탐색 진행
+        // 타겟보다 크거나 같은 인덱스를 찾는다.
+        // 중간값이 타겟보다 크거나 같으면 끝값을 중간으로 옮긴다.
+        while (start < end) {
+
+            int mid = (start + end) / 2;
+            if (arr[mid] >= target) {
+                end = mid;
+            } else {
+                start = mid + 1;
+            }
+        }
+
+        return end;
     }
 }
