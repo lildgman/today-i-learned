@@ -1,5 +1,6 @@
 package jpabook2.jpashop2.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jpabook2.jpashop2.domain.item.Item;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class OrderItem {
     private Item item;
 
     // 주문
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;

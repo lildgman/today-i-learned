@@ -3,6 +3,7 @@ package jpabook2.jpashop2.repository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
+import jpabook2.jpashop2.api.OrderSimpleApiController;
 import jpabook2.jpashop2.domain.Member;
 import jpabook2.jpashop2.domain.Order;
 import jpabook2.jpashop2.domain.OrderSearch;
@@ -100,4 +101,34 @@ public class OrderRepository {
         return query.getResultList();
 
     }
+
+    public List<Order> findAllWithMemberDelivery() {
+        // fetch join으로 쿼리 1번만 호출
+        return em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class
+        ).getResultList();
+
+        // 엔티티를 페치 조인을 사용해 쿼리 1번에 모두 조회
+        // 페치 조인으로 order -> member, order -> delivery 이미 조회된 상태이므로 지연로딩하지 않음
+
+    }
+
+    public List<SimpleOrderQueryDto> findOrderDtos() {
+
+        return em.createQuery(
+                "select new jpabook2.jpashop2.repository.SimpleOrderQueryDto(o.id, m.username, o.orderDate, o.status, d.address)" +
+                        " from Order o" +
+                        " join o.member m" +
+                        " join o.delivery d", SimpleOrderQueryDto.class).getResultList();
+        // select절에서 원하는 데이터만 조회
+
+        // 일반적인 SQL을 사용할 때 처럼 원하는 값을 선택해서 조회
+        // new 명령어를 사용하여 JPQL 결과를 DTO로 즉시 변환
+        // DB -> 애플리케이션 네트워크 용량 최적화
+        // 리포지토리의 재사용성이 떨어진다. -> API 스펙에 맞춘 코드가 리포지토리에 들어가는 단점이 있다.
+    }
+
+
 }
