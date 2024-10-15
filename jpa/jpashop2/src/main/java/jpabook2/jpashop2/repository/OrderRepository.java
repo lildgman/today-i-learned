@@ -10,6 +10,7 @@ import jpabook2.jpashop2.domain.OrderSearch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -131,4 +132,31 @@ public class OrderRepository {
     }
 
 
+    public List<Order> findAllWithItem() {
+
+        return em.createQuery(
+                "select distinct o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d" +
+                        " join fetch o.orderItems oi" +
+                        " join fetch oi.item i", Order.class).getResultList();
+        // distinct 사용 이유
+        // 1대다 관계이기 때문에 데이터베이스 row가 중가하게 된다.
+        // 그 결과 order 엔티티의 조회 수도 증가하게 되게 된다.
+        // db에 distinct 키워드 날려주고, 엔티티가 중복인 경우 중복을 걸러서 컬렉션에 담아준다.
+        // 하이버네이트6에서는 기본값으로 되어있다.
+
+        // 컬렉션 페치 조인을 사용하면 페이징이 불가능하다. 하이버네이트가 경고 로그를 남기고 DB에서 모든 데이터를 읽어오고 메모리에서 페이징 해버린다. 매우 위험하다!
+        // 컬렉션 페치 조인은 1개만 사용할 수 있다. 데이터가 부정합하게 조회될 수가 있다.
+    }
+
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) {
+        return em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
+    }
 }
