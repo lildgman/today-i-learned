@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -36,12 +37,12 @@ public class MemberService {
         return memberRepository.findAll();
     }
 
-    public Member findOne(Long memberId) {
-        return memberRepository.findOne(memberId);
+    public Optional<Member> findOne(Long memberId) {
+        return memberRepository.findById(memberId);
     }
 
     private void validateDuplicateMember(Member member) {
-        List<Member> findMembers = memberRepository.findByName(member.getUsername());
+        List<Member> findMembers = memberRepository.findByUsername(member.getUsername());
 
         if (!findMembers.isEmpty()) {
             throw new IllegalStateException("이미 존재하는 회원입니다.");
@@ -53,7 +54,7 @@ public class MemberService {
     @Transactional
     public void update(Long id, String name) {
         // 영속성 컨텍스트 안에 있는 회원을 조회해 회원 수정
-        Member findMember = memberRepository.findOne(id);
-        findMember.setUsername(name);
+        Optional<Member> findMember = memberRepository.findById(id);
+        findMember.get().setUsername(name);
     }
 }

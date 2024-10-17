@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -56,8 +57,8 @@ public class MemberApiController {
 
         memberService.update(id, request.getName());
 
-        Member findMember = memberService.findOne(id);
-        return new UpdateMemberResponse(findMember.getId(), findMember.getUsername());
+        Optional<Member> findMember = memberService.findOne(id);
+        return new UpdateMemberResponse(findMember.get().getId(), findMember.get().getUsername());
 
     }
 
