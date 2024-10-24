@@ -57,7 +57,59 @@ class MemberJpaRepositoryTest {
         memberJpaRepository.delete(member2);
 
         long deletedCount = memberJpaRepository.count();
-        assertThat(count).isEqualTo(2);
+        assertThat(deletedCount).isEqualTo(0);
+
+    }
+
+    @Test
+    public void findByUsernameAndAgeGreaterThen() {
+        Member member1 = new Member("AAA", 10);
+        Member member2 = new Member("AAA", 20);
+
+        memberJpaRepository.save(member1);
+        memberJpaRepository.save(member2);
+
+        List<Member> result = memberJpaRepository.findByUsernameAndAgeGreaterThen("AAA", 15);
+        assertThat(result.get(0).getUsername()).isEqualTo("AAA");
+        assertThat(result.get(0).getAge()).isEqualTo(20);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testNamedQuery() {
+        Member member1 = new Member("AAA", 10);
+        Member member2 = new Member("AAA", 20);
+
+        memberJpaRepository.save(member1);
+        memberJpaRepository.save(member2);
+
+        List<Member> result = memberJpaRepository.findByUsername("AAA");
+        Member findMember = result.get(0);
+        assertThat(findMember).isEqualTo(member1);
+        assertThat(findMember.getUsername()).isEqualTo("AAA");
+    }
+
+    @Test
+    public void paging() {
+        memberJpaRepository.save(new Member("Member1", 10));
+        memberJpaRepository.save(new Member("Member2", 10));
+        memberJpaRepository.save(new Member("Member3", 10));
+        memberJpaRepository.save(new Member("Member4", 10));
+        memberJpaRepository.save(new Member("Member5", 10));
+        memberJpaRepository.save(new Member("Member6", 10));
+        memberJpaRepository.save(new Member("Member7", 10));
+        memberJpaRepository.save(new Member("Member8", 10));
+        memberJpaRepository.save(new Member("Member9", 10));
+
+        int age = 10;
+        int offset = 0;
+        int limit = 3;
+
+        List<Member> members = memberJpaRepository.findByPage(age, offset, limit);
+        long totalCount = memberJpaRepository.totalCount(age);
+
+        assertThat(members.size()).isEqualTo(3);
+        assertThat(totalCount).isEqualTo(9);
 
     }
 }
