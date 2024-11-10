@@ -1,4 +1,4 @@
-package programmers.basic;
+package programmers.basic.day10;
 
 public class Day10_5 {
 

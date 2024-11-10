@@ -1,7 +1,4 @@
-package programmers.basic;
-
-import java.util.ArrayList;
-import java.util.List;
+package programmers.basic.day10;
 
 public class Day10_4 {
 
