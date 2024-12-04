@@ -91,7 +91,6 @@ public class Main_7576 {
         int x = currentNode.getX();
         int y = currentNode.getY();
 
-        visit[x][y] = true;
 
 
 
