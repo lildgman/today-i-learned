@@ -1,7 +1,7 @@
 # TODAY I LEARNED
 
 ## 컴퓨터구조
-- [컴퓨터구조](computer-structure/computer-structure.md)
+- [혼자 공부하는 컴퓨터구조+운영체제](computer-structure/computer-structure.md)
 ## 운영체제
 
 ## WEB
@@ -10,6 +10,7 @@
 
 ## 데이터베이스
 - [혼자 공부하는 SQL](database/markdown/hongong/hongong.md)
+
 ## 자료구조
 - [빅오표기법](data-structures/markdown/big_o/big_o.md)
 - [스택](data-structures/markdown/stack/stack.md) 
@@ -17,16 +18,16 @@
 - [연결리스트](data-structures/markdown/linkedlist/linkedlist.md) 
 
 ## 알고리즘
+### 코딩테스트
+- [이것이 코딩테스트다](algorithm/markdown/thisiscodingtest.md)
+
 ### 정렬
 - [선택정렬](algorithm/markdown/sort/selectionsort.md)
 - [계수정렬](algorithm/markdown/sort/countingsort.md)
 - [삽입정렬](algorithm/markdown/sort/insertionsort.md)
 
-## 코딩테스트
-- [이것이 코딩테스트다](algorithm/markdown/thisiscodingtest.md)
-
 ## 자바
-- [자바 컴파일 과정](java/markdown/compile/compile.md)
+- [자바의 컴파일 과정을 알아보자](java/markdown/compile/compile.md)
 - [변수](java/markdown/variable.md)
 - [Call by Value & Call by reference](java/markdown/java_call.md) 
 - [예외](java/markdown/exception.md)
