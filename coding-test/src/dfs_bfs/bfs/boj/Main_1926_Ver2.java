@@ -1,11 +1,14 @@
 package dfs_bfs.bfs.boj;
 
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.StringTokenizer;
 
-public class Main_1926 {
+public class Main_1926_Ver2 {
 
     // https://www.acmicpc.net/problem/1926
 
@@ -27,17 +30,16 @@ public class Main_1926 {
     static int n;
     static int m;
 
-    // 그림 2차원 배열
     static int[][] board;
-    // 방문 테이블
-    static boolean[][] visited;
+    static boolean[][] visit;
 
-    // 우, 좌, 하, 상 이동 벡터
-    static int[] dx = {1, -1, 0, 0};
-    static int[] dy = {0, 0, 1, -1};
+    static int[] dx = {0, 0, -1, 1};
+    static int[] dy = {-1, 1, 0, 0};
+
+    static Queue<Point> queue = new LinkedList<>();
 
     public static void main(String[] args) throws IOException {
-        // 입력을 위한 BufferedReader
+
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         StringTokenizer st = new StringTokenizer(br.readLine());
 
@@ -45,10 +47,11 @@ public class Main_1926 {
         m = Integer.parseInt(st.nextToken());
 
         board = new int[n][m];
-        visited = new boolean[n][m];
+        visit = new boolean[n][m];
 
         for (int i = 0; i < n; i++) {
             st = new StringTokenizer(br.readLine());
+
             for (int j = 0; j < m; j++) {
                 board[i][j] = Integer.parseInt(st.nextToken());
             }
@@ -56,74 +59,85 @@ public class Main_1926 {
 
         // 그림 개수
         int picCount = 0;
-        // 가장 큰 그림의 크기
-        int maxSize = 0;
+        // 제일 큰 그림의 크기
+        int  maxPicSize = 0;
 
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < m; j++) {
-                // 방문하지 않았고 그림이 그려져 있는 부분일 경우
-                if (board[i][j] == 1 && !visited[i][j]) {
 
-                    maxSize = Math.max(maxSize, bfs_1926(new Node(i,j)));
+                if (board[i][j] == 1 && !visit[i][j]) {
+
+                    // bfs 수행
+                    maxPicSize = Math.max(maxPicSize, getPicSize(new Point(i, j)));
                     picCount++;
                 }
             }
         }
 
         System.out.println(picCount);
-        System.out.println(maxSize);
+        System.out.println(maxPicSize);
+
     }
 
-    private static int bfs_1926(Node node) {
+    static int getPicSize(Point point) {
 
-        Queue<Node> q = new LinkedList<>();
-        q.offer(node);
-
-        visited[node.getX()][node.getY()] = true;
+        visit(point);
         int size = 1;
 
-        while (!q.isEmpty()) {
-            Node currentNode = q.poll();
+        while (!queue.isEmpty()) {
 
-            int x = currentNode.getX();
-            int y = currentNode.getY();
+            Point currentPoint = queue.poll();
 
-            // 우,좌,하,상 방향을 확인하기 위한 반복문
+            int x = currentPoint.getX();
+            int y = currentPoint.getY();
+
             for (int i = 0; i < 4; i++) {
-                // 다음 방문할 x좌표
+
                 int nextX = x + dx[i];
-                // 다음 방문할 y좌표
                 int nextY = y + dy[i];
 
-                // 범위 안에 있으면
-                if (nextX >= 0 && nextX < n && nextY >=0 && nextY < m
+                if (nextX >= 0 && nextX < n && nextY >= 0 && nextY < m
                         && board[nextX][nextY] == 1
-                        && !visited[nextX][nextY]) {
-                    q.offer(new Node(nextX, nextY));
-                    visited[nextX][nextY] = true;
+                        && !visit[nextX][nextY]) {
+
+                    queue.offer(new Point(nextX, nextY));
+                    visit[nextX][nextY] = true;
                     size++;
+
                 }
             }
+
         }
 
         return size;
+
     }
 
-    static class Node {
+    private static void visit(Point point) {
+        queue.offer(point);
+        visit[point.getX()][point.getY()] = true;
+    }
+
+
+    static class Point {
+
         private int x;
         private int y;
 
-        Node(int x, int y) {
+        public Point(int x, int y) {
             this.x = x;
             this.y = y;
         }
 
         public int getX() {
-            return this.x;
+            return x;
         }
 
         public int getY() {
-            return this.y;
+            return y;
         }
+
     }
 }
+
+
