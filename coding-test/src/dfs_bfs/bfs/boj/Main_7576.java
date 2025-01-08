@@ -47,8 +47,8 @@ public class Main_7576 {
      * 토마토가 모두 익지는 못하는 상황이면 -1을 출력해야 한다.
      */
 
-    static int n;
     static int m;
+    static int n;
 
     static int[][] box;
 
@@ -59,12 +59,13 @@ public class Main_7576 {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         StringTokenizer st = new StringTokenizer(br.readLine());
 
-        int n = Integer.parseInt(st.nextToken());
-        int m = Integer.parseInt(st.nextToken());
+        m = Integer.parseInt(st.nextToken());
+        n = Integer.parseInt(st.nextToken());
 
         box = new int[n][m];
 
         Queue<Node> queue = new LinkedList<>();
+        boolean allRipe = true;
 
         for (int i = 0; i < n; i++) {
             st = new StringTokenizer(br.readLine());
@@ -73,28 +74,59 @@ public class Main_7576 {
 
                 if (box[i][j] == 1) {
                     queue.offer(new Node(i, j));
+                } else if (box[i][j] == 0) {
+                    allRipe = false;
                 }
 
             }
         }
 
-        System.out.println(bfs_7576(queue));
+        if (allRipe) {
+            System.out.println(0);
+            return;
+        }
 
+        ripeTomato(queue);
 
+        int maxDays = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (box[i][j] == 0) {
+                    System.out.println(-1);
+                    return;
+                }
+                maxDays = Math.max(maxDays, box[i][j]);
+            }
+        }
+
+        System.out.println(maxDays - 1);
 
     }
 
-    private static int bfs_7576(Queue<Node> queue) {
-
-        Node currentNode = queue.poll();
-
-        int x = currentNode.getX();
-        int y = currentNode.getY();
+    private static void ripeTomato(Queue<Node> queue) {
 
 
+        while (!queue.isEmpty()) {
+
+            Node currentNode = queue.poll();
+
+            int x = currentNode.getX();
+            int y = currentNode.getY();
+
+            for (int i = 0; i < 4; i++) {
+
+                int nextX = x + dx[i];
+                int nextY = y + dy[i];
+
+                if (nextX >= 0 && nextX < n && nextY >= 0 && nextY < m
+                        && box[nextX][nextY] == 0) {
+                    queue.offer(new Node(nextX, nextY));
+                    box[nextX][nextY] = box[x][y] + 1;
+                }
+            }
+        }
 
 
-        return 0;
     }
 
     static class Node {
