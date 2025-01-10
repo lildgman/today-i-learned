@@ -127,10 +127,10 @@ public class Main_4179 {
                 int nextY = y + dy[i];
 
                 if (nextX >= 0 && nextX < r && nextY >= 0 && nextY < c
-                        && fireRoute[nextX][nextY] == -1
+                        && jihunRoute[nextX][nextY] == -1
                         && !maze[nextX][nextY].equals("#")
-                        && (fireRoute[nextX][nextY] != -1
-                        || jihunRoute[nextX][nextY] + 1 < fireRoute[nextX][nextY])) {
+                        && (fireRoute[nextX][nextY] == -1
+                        || jihunRoute[x][y] + 1 < fireRoute[nextX][nextY])) {
                     jihunRoute[nextX][nextY] = jihunRoute[x][y] + 1;
                     jihun.offer(new Point(nextX, nextY));
                 }
