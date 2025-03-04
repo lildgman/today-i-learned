@@ -1,4 +1,4 @@
-package divi_multiple_decimal;
+package divi_multiple_decimal.my;
 
 import java.io.BufferedReader;
 import java.io.IOException;
