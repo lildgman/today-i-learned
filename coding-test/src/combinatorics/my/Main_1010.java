@@ -28,6 +28,8 @@ public class Main_1010 {
     각 테스트 케이스에 대해 주어진 조건하에 다리를 지을 수 있는 경우의 수를 출력한다.
      */
 
+    static long[][] dp = new long[30][30];
+
     public static void main(String[] args) throws IOException {
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -47,14 +49,15 @@ public class Main_1010 {
     }
 
     private static long combination(int n, int r) {
-        return factorial(n) / (factorial(r) * factorial(n - r));
-    }
 
-    private static long factorial(int n) {
-        if (n == 0) {
+        if (r == 0 || r == n) {
             return 1;
         }
 
-        return n * factorial(n - 1);
+        if (dp[n][r] != 0) {
+            return dp[n][r];
+        }
+
+        return dp[n][r] = combination(n - 1, r - 1) + combination(n - 1, r);
     }
 }
