@@ -1,4 +1,4 @@
-package bark.ch3;
+package bark.ch2;
 
 import java.io.BufferedReader;
 import java.io.IOException;
