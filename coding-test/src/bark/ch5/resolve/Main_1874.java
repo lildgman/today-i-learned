@@ -1,4 +1,4 @@
-package bark.ch5;
+package bark.ch5.resolve;
 
 import java.io.BufferedReader;
 import java.io.IOException;
