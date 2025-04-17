@@ -40,6 +40,71 @@ public class Main_5430 {
         // 테스트케이스 개수 t
         int t = Integer.parseInt(br.readLine());
 
+        StringBuilder sb = new StringBuilder();
 
+        for (int i = 0; i < t; i++) {
+            // 수행할 함수
+            String p = br.readLine();
+            // 배열에 들어있는 수의 개수
+            int n = Integer.parseInt(br.readLine());
+            // 배열에 들어가있는 수
+            // [1,2,3,4] 이런식으로 구성
+            String input = br.readLine();
+
+            Deque<Integer> deque = new ArrayDeque<>();
+            String[] nums = input.substring(1, input.length() - 1).split(",");
+
+            for (String num : nums) {
+                if (!num.isEmpty()) {
+                    deque.addLast(Integer.parseInt(num));
+                }
+            }
+
+            // R: 배열 뒤직비
+            // D: 첫번째 수 버리기
+            // 여기서 실제로 배열을 뒤집지 않고 플래그를 사용
+            // 덱의 특성을 활용하여 플래그에 따라 앞에서 제거하거나 뒤에서 제거하자
+
+            boolean reversed = false;
+            boolean isError = false;
+
+            for (char c : p.toCharArray()) {
+                if (c == 'R') { // R일 때 reversed를 전환
+                    reversed = !reversed;
+                } else if (c == 'D') { // D일 때 첫번째 수 제거
+                    // 덱이 비어있으면 error
+                    if (deque.isEmpty()) {
+                        isError = true;
+                        break;
+                    }
+
+                    // reversed가 참이면 뒤에서부터 제거
+                    if (reversed) {
+                        deque.pollLast();
+                    } else {
+                        deque.pollFirst();
+                    }
+                }
+            }
+
+            if (isError) {
+                sb.append("error").append('\n');
+            } else {
+                sb.append('[');
+                while (!deque.isEmpty()) {
+                    // reversed가 참일 때 뒤에서부터 값 출력, 거짓일 때는 앞에서부터 값 출력
+                    sb.append(reversed ? deque.pollLast() : deque.pollFirst());
+
+                    if (!deque.isEmpty()) {
+                        sb.append(',');
+                    }
+                }
+                sb.append(']').append('\n');
+            }
+
+
+        }
+
+        System.out.println(sb);
     }
 }
