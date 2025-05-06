@@ -10,6 +10,7 @@
 
 ## 데이터베이스
 - [혼자 공부하는 SQL](database/markdown/hongong/hongong.md)
+- [SQLD 정리](database/markdown/sqld/sqld.md)
 
 ## 자료구조
 - [빅오표기법](data-structures/markdown/big_o/big_o.md)
